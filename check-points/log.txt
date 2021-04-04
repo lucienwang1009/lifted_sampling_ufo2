@@ -1,0 +1,47 @@
+[D 210331 16:37:05 compiler:45] Dsharp output:
+    cachesize Max:	300984 kbytes
+    #Vars:6
+    #Clauses:7
+    #bin Cls:5
+    BEGIN preprocessing
+    
+    END preprocessing
+    #Vars remaining:6
+    #Clauses remaining:7
+    #bin Cls remaining:5
+    Uncompressed Edges: 29
+    Compressed Edges: 26
+    
+    
+    #Variables:		6
+    #Clauses:		7
+    #Clauses removed:	0
+    
+    #added Clauses: 	0
+    
+    # of all assignments:	64 = 2^(6)
+    Pr[satisfaction]:	0.25
+    # of solutions:		16
+    #SAT (full):   		
+    
+    Num. conflicts:		0
+    Num. implications:	15
+    Num. decisions:		4
+    max decision level:	3		avg decision level:	1.875
+    avg conflict level:	0
+    avg solution level:	1.875
+    CCLLen 1stUIP - max:	0	 avg:	0
+    CCLLen lastUIP - max:	0	 avg:	0
+    
+    FormulaCache stats:
+    memUse:			44
+    cached:			5
+    used Buckets:		4
+    cache retrievals:	0
+    cache tries:		5
+    
+    
+    Time: 0.000298s
+    
+    Runtime:0.000298
+    
