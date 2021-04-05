@@ -11,7 +11,6 @@ smokes(person)
 cancer(person)
 2.22 smokes(x) => cancer(x)
 2.08 friends(x,y) ^ smokes(x) => smokes(y)
-1 smokes(x)
-0.6 friends(x,y)
+// 0.6 exist y friends(x,y)
 // smokes(2).
 // 1 friends(x,y) <=> friends(y,x)

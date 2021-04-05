@@ -43,6 +43,6 @@ def wfomc(mln):
 
 
 if __name__ == '__main__':
-    mln = MLN.load('./models/friendsmoker.mln', grammar='StandardGrammar')
+    mln = MLN.load('./models/infection.mln', grammar='StandardGrammar')
     wfomc = wfomc(mln)
     print(wfomc)
