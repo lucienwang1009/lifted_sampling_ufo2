@@ -1,5 +1,8 @@
-import itertools
+import os
+import argparse
+import logging
 
+import logzero
 from pracmln import MLN
 from sympy import ntheory
 from logzero import logger
@@ -36,13 +39,34 @@ def wfomc(mln):
     res = 0
     for partition, coef in iterator:
         config_wfomc = (coef * product_wmc(cell_graph, partition))
-        logger.debug('coefficient and wfomc in the configuration %s: %s, %s',
-                     partition, coef, config_wfomc)
         res += config_wfomc
     return res
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='WFOMC for MLN',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument('--input', '-i', type=str, required=True,
+                        help='mln file')
+    parser.add_argument('--output_dir', '-o', type=str,
+                        default='./check-points')
+    parser.add_argument('--debug', action='store_true', default=False)
+    args = parser.parse_args()
+    return args
+
+
 if __name__ == '__main__':
-    mln = MLN.load('./models/infection.mln', grammar='StandardGrammar')
-    wfomc = wfomc(mln)
-    print(wfomc)
+    args = parse_args()
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    if args.debug:
+        logzero.loglevel(logging.DEBUG)
+    else:
+        logzero.loglevel(logging.INFO)
+    logzero.logfile('{}/log.txt'.format(args.output_dir), mode='w')
+
+    mln = MLN.load(args.input, grammar='StandardGrammar')
+    res = wfomc(mln)
+    logger.info('WFOMC: %s', res)

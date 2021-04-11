@@ -5,6 +5,8 @@ from pracmln.mln.mlnpreds import Predicate
 from pracmln.logic.fol import Implication, Exist, Lit, Biimplication
 from logzero import logger
 
+from atom import Atom
+
 
 aux_pred_prefix = 'aux'
 
@@ -14,6 +16,24 @@ class Context(object):
         self.mln = mln
         self.formula, self.weights = self._to_wfomc_sentence()
         self.preds = self.mln.predicates
+
+        self.gnd_formula_ab = self.ground_formula('a', 'b')
+        self.gnd_formula_cc = self.ground_formula('c', 'c')
+        # cache evidences
+        self.same_gnd_atoms = [
+            Atom(predname=p.name, args=(['c'] * len(p.argdoms)))
+            for p in self.preds
+        ]
+        # logger.debug('same assignment evidences: %s', self.same_gnd_evidences)
+        self.left_gnd_atoms = [
+            Atom(predname=p.name, args=(['a'] * len(p.argdoms)))
+            for p in self.preds
+        ]
+        # logger.debug('left assignment evidences: %s', self.left_gnd_evidences)
+        self.right_gnd_atoms = [
+            Atom(predname=p.name, args=(['b'] * len(p.argdoms)))
+            for p in self.preds
+        ]
 
     def ground_formula(self, c1, c2):
         varnames = list(self.formula.vardoms().keys())

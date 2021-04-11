@@ -11,8 +11,15 @@ class Atom(object):
         self.predname = predname
         self.args = args
 
+    def replace(self, assign):
+        self.args = [assign[arg] for arg in self.args]
+        return self
+
     def to_var(self):
         return Var(str(self))
+
+    def ground(self, consts):
+        pass
 
     @staticmethod
     def from_var(var):

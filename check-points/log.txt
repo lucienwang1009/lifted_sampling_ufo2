@@ -1,47 +1,30 @@
-[D 210331 16:37:05 compiler:45] Dsharp output:
-    cachesize Max:	300984 kbytes
-    #Vars:6
-    #Clauses:7
-    #bin Cls:5
-    BEGIN preprocessing
+[I 210406 20:58:11 cell_graph:64] predicates: [<Predicate: aux0(person)>, <Predicate: aux1(person,person)>, <Predicate: aux2(person,person)>, <Predicate: cancer(person)>, <Predicate: friends(person,person)>, <Predicate: smokes(person)>]
+[I 210406 20:58:11 cell_graph:66] inherent weight, s and w for cell 111000: 200.33680997479172, 73.27967610288759, 1.0
+[I 210406 20:58:11 cell_graph:66] inherent weight, s and w for cell 111100: 200.33680997479172, 73.27967610288759, 1.0
+[I 210406 20:58:11 cell_graph:66] inherent weight, s and w for cell 111010: 200.33680997479172, 73.27967610288759, 1.0
+[I 210406 20:58:11 cell_graph:66] inherent weight, s and w for cell 111110: 200.33680997479172, 73.27967610288759, 1.0
+[I 210406 20:58:11 cell_graph:66] inherent weight, s and w for cell 011001: 21.75840239619708, 73.27967610288759, 1.0
+[I 210406 20:58:11 cell_graph:66] inherent weight, s and w for cell 111101: 200.33680997479172, 73.27967610288759, 1.0
+[I 210406 20:58:11 cell_graph:66] inherent weight, s and w for cell 011011: 21.75840239619708, 73.27967610288759, 1.0
+[I 210406 20:58:11 cell_graph:66] inherent weight, s and w for cell 111111: 200.33680997479172, 73.27967610288759, 1.0
+[I 210406 20:58:11 cell_graph:70] r:
+               111000     111100     111010     111110     011001     111101  \
+    111000        NaN  73.279676  73.279676  73.279676  47.235087  47.235087   
+    111100  73.279676        NaN  73.279676  73.279676  47.235087  47.235087   
+    111010  73.279676  73.279676        NaN  73.279676  47.235087  47.235087   
+    111110  73.279676  73.279676  73.279676        NaN  47.235087  47.235087   
+    011001  73.279676  73.279676  73.279676  73.279676        NaN  73.279676   
+    111101  73.279676  73.279676  73.279676  73.279676  73.279676        NaN   
+    011011  73.279676  73.279676  73.279676  73.279676  73.279676  73.279676   
+    111111  73.279676  73.279676  73.279676  73.279676  73.279676  73.279676   
     
-    END preprocessing
-    #Vars remaining:6
-    #Clauses remaining:7
-    #bin Cls remaining:5
-    Uncompressed Edges: 29
-    Compressed Edges: 26
-    
-    
-    #Variables:		6
-    #Clauses:		7
-    #Clauses removed:	0
-    
-    #added Clauses: 	0
-    
-    # of all assignments:	64 = 2^(6)
-    Pr[satisfaction]:	0.25
-    # of solutions:		16
-    #SAT (full):   		
-    
-    Num. conflicts:		0
-    Num. implications:	15
-    Num. decisions:		4
-    max decision level:	3		avg decision level:	1.875
-    avg conflict level:	0
-    avg solution level:	1.875
-    CCLLen 1stUIP - max:	0	 avg:	0
-    CCLLen lastUIP - max:	0	 avg:	0
-    
-    FormulaCache stats:
-    memUse:			44
-    cached:			5
-    used Buckets:		4
-    cache retrievals:	0
-    cache tries:		5
-    
-    
-    Time: 0.000298s
-    
-    Runtime:0.000298
-    
+               011011     111111  
+    111000  47.235087  47.235087  
+    111100  47.235087  47.235087  
+    111010  47.235087  47.235087  
+    111110  47.235087  47.235087  
+    011001  73.279676  73.279676  
+    111101  73.279676  73.279676  
+    011011        NaN  73.279676  
+    111111  73.279676        NaN  
+[I 210406 20:58:11 wfomc:72] WFOMC: 2.164295662349823e+34
