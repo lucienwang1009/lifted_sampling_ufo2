@@ -1,91 +1,72 @@
-[D 210416 10:03:13 context:68] sentence for wfomc: (aux0(x) <=> (smokes(x) => cancer(x))) ^ (aux1(x,y) <=> ((friends(x,y) ^ smokes(x)) => smokes(y))) ^ (aux2(x,y) <=> (friends(x,y) => friends(y,x)))
-[D 210416 10:03:13 cell_graph:46] prednames: [<Predicate: aux0(person)>, <Predicate: aux1(person,person)>, <Predicate: aux2(person,person)>, <Predicate: cancer(person)>, <Predicate: friends(person,person)>, <Predicate: smokes(person)>]
-[D 210416 10:03:13 cell_graph:57] before filtering, the number of cells: 64
-[D 210416 10:03:13 cell_graph:100] filtered cell: 000000
-[D 210416 10:03:13 cell_graph:100] filtered cell: 100000
-[D 210416 10:03:13 cell_graph:100] filtered cell: 010000
-[D 210416 10:03:13 cell_graph:100] filtered cell: 110000
-[D 210416 10:03:13 cell_graph:100] filtered cell: 001000
-[D 210416 10:03:13 cell_graph:100] filtered cell: 101000
-[D 210416 10:03:13 cell_graph:100] filtered cell: 011000
-[D 210416 10:03:13 cell_graph:100] filtered cell: 000100
-[D 210416 10:03:13 cell_graph:100] filtered cell: 100100
-[D 210416 10:03:13 cell_graph:100] filtered cell: 010100
-[D 210416 10:03:13 cell_graph:100] filtered cell: 110100
-[D 210416 10:03:13 cell_graph:100] filtered cell: 001100
-[D 210416 10:03:13 cell_graph:100] filtered cell: 101100
-[D 210416 10:03:13 cell_graph:100] filtered cell: 011100
-[D 210416 10:03:13 cell_graph:100] filtered cell: 000010
-[D 210416 10:03:13 cell_graph:100] filtered cell: 100010
-[D 210416 10:03:13 cell_graph:100] filtered cell: 010010
-[D 210416 10:03:13 cell_graph:100] filtered cell: 110010
-[D 210416 10:03:13 cell_graph:100] filtered cell: 001010
-[D 210416 10:03:13 cell_graph:100] filtered cell: 101010
-[D 210416 10:03:13 cell_graph:100] filtered cell: 011010
-[D 210416 10:03:13 cell_graph:100] filtered cell: 000110
-[D 210416 10:03:13 cell_graph:100] filtered cell: 100110
-[D 210416 10:03:13 cell_graph:100] filtered cell: 010110
-[D 210416 10:03:13 cell_graph:100] filtered cell: 110110
-[D 210416 10:03:14 cell_graph:100] filtered cell: 001110
-[D 210416 10:03:14 cell_graph:100] filtered cell: 101110
-[D 210416 10:03:14 cell_graph:100] filtered cell: 011110
-[D 210416 10:03:14 cell_graph:100] filtered cell: 000001
-[D 210416 10:03:14 cell_graph:100] filtered cell: 100001
-[D 210416 10:03:14 cell_graph:100] filtered cell: 010001
-[D 210416 10:03:14 cell_graph:100] filtered cell: 110001
-[D 210416 10:03:14 cell_graph:100] filtered cell: 001001
-[D 210416 10:03:14 cell_graph:100] filtered cell: 101001
-[D 210416 10:03:14 cell_graph:100] filtered cell: 111001
-[D 210416 10:03:14 cell_graph:100] filtered cell: 000101
-[D 210416 10:03:14 cell_graph:100] filtered cell: 100101
-[D 210416 10:03:14 cell_graph:100] filtered cell: 010101
-[D 210416 10:03:14 cell_graph:100] filtered cell: 110101
-[D 210416 10:03:14 cell_graph:100] filtered cell: 001101
-[D 210416 10:03:14 cell_graph:100] filtered cell: 101101
-[D 210416 10:03:14 cell_graph:100] filtered cell: 011101
-[D 210416 10:03:14 cell_graph:100] filtered cell: 000011
-[D 210416 10:03:14 cell_graph:100] filtered cell: 100011
-[D 210416 10:03:14 cell_graph:100] filtered cell: 010011
-[D 210416 10:03:14 cell_graph:100] filtered cell: 110011
-[D 210416 10:03:14 cell_graph:100] filtered cell: 001011
-[D 210416 10:03:14 cell_graph:100] filtered cell: 101011
-[D 210416 10:03:14 cell_graph:100] filtered cell: 111011
-[D 210416 10:03:14 cell_graph:100] filtered cell: 000111
-[D 210416 10:03:14 cell_graph:100] filtered cell: 100111
-[D 210416 10:03:14 cell_graph:100] filtered cell: 010111
-[D 210416 10:03:14 cell_graph:100] filtered cell: 110111
-[D 210416 10:03:14 cell_graph:100] filtered cell: 001111
-[D 210416 10:03:14 cell_graph:100] filtered cell: 101111
-[D 210416 10:03:14 cell_graph:100] filtered cell: 011111
-[D 210416 10:03:14 cell_graph:59] after filtering, the number of cells: 8
-[D 210416 10:03:14 sampler:32] {111000: {'2'}, 111100: set(), 111010: {'3'}, 111110: {'4'}, 011001: set(), 111101: {'1'}, 011011: set(), 111111: set()}
-[D 210416 10:03:14 sampler:83] {aux0(3), aux2(4,3), friends(2,1), friends(2,3), aux0(2), aux1(3,1), friends(4,1), aux2(3,4), aux1(3,3), aux1(4,2), aux1(1,2), aux2(4,4), friends(1,4), aux1(4,1), aux1(2,1), aux2(1,4), smokes(1), aux2(2,2), aux2(4,2), aux2(1,1), aux2(2,4), friends(3,4), friends(3,3), aux1(1,1), aux2(3,2), aux1(3,2), aux2(3,3), friends(4,2), aux1(2,4), aux1(4,4), aux1(4,3), aux0(4), aux0(1), aux1(2,2), cancer(1), aux1(3,4), aux2(3,1), friends(4,4), aux2(1,2), cancer(4), friends(1,3), aux2(4,1), aux1(2,3)}
-[D 210416 10:03:14 sampler:32] {111000: {'4', '3'}, 111100: set(), 111010: set(), 111110: set(), 011001: set(), 111101: set(), 011011: set(), 111111: {'1', '2'}}
-[D 210416 10:03:14 sampler:83] {aux2(2,1), friends(2,2), aux2(4,3), aux0(3), aux1(1,4), aux2(2,3), friends(2,1), friends(2,3), aux1(3,1), friends(1,2), aux0(2), friends(4,1), aux2(3,4), aux1(3,3), aux1(4,2), friends(1,4), aux2(4,4), aux1(1,2), aux1(4,1), aux1(2,1), aux2(1,4), smokes(1), cancer(2), friends(1,1), friends(4,3), aux2(2,2), aux2(1,1), aux2(4,2), friends(3,4), aux2(2,4), aux1(1,1), aux2(3,2), aux1(3,2), aux2(3,3), friends(2,4), friends(4,2), smokes(2), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), cancer(1), aux1(2,2), aux1(3,4), aux2(3,1), aux2(1,2), friends(3,1), friends(1,3), aux2(4,1), aux1(1,3), aux1(2,3)}
-[D 210416 10:03:14 sampler:32] {111000: {'2'}, 111100: set(), 111010: {'3'}, 111110: {'1'}, 011001: set(), 111101: {'4'}, 011011: set(), 111111: set()}
-[D 210416 10:03:14 sampler:83] {aux2(2,1), aux0(3), aux2(4,3), aux1(1,4), friends(2,1), friends(2,3), aux0(2), aux1(3,1), friends(4,1), aux1(3,3), aux1(4,2), aux1(1,2), aux2(4,4), friends(1,4), aux1(2,1), aux2(1,4), friends(1,1), aux2(2,2), aux2(1,1), aux2(4,2), aux2(2,4), friends(3,4), friends(3,3), aux1(1,1), smokes(4), aux2(3,2), aux1(3,2), aux2(3,3), friends(2,4), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), aux1(2,2), cancer(1), aux1(3,4), aux2(3,1), aux2(1,2), cancer(4), aux2(4,1), aux1(1,3), aux1(2,3)}
-[D 210416 10:03:14 sampler:32] {111000: {'2'}, 111100: {'3'}, 111010: {'4'}, 111110: {'1'}, 011001: set(), 111101: set(), 011011: set(), 111111: set()}
-[D 210416 10:03:14 sampler:83] {aux2(2,1), aux0(3), aux2(4,3), aux1(1,4), friends(2,3), aux0(2), friends(1,2), aux1(3,1), friends(4,1), cancer(3), aux1(3,3), aux2(3,4), aux1(4,2), aux2(4,4), aux1(1,2), aux1(4,1), aux1(2,1), aux2(1,4), friends(1,1), aux2(2,2), aux2(1,1), aux2(2,4), friends(3,4), aux1(1,1), aux2(3,2), aux1(3,2), aux2(3,3), friends(4,2), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), aux1(2,2), cancer(1), aux1(3,4), aux2(3,1), friends(4,4), friends(3,1), aux1(1,3), aux1(2,3)}
-[D 210416 10:03:14 sampler:32] {111000: {'1', '2'}, 111100: {'3'}, 111010: set(), 111110: set(), 011001: set(), 111101: set(), 011011: set(), 111111: {'4'}}
-[D 210416 10:03:14 sampler:83] {aux2(2,1), aux0(3), aux1(1,4), aux2(2,3), friends(2,3), aux0(2), friends(4,1), aux1(3,1), cancer(3), aux1(3,3), aux2(3,4), aux1(1,2), friends(1,4), aux2(4,4), aux1(4,2), aux1(4,1), aux1(2,1), aux2(1,4), aux2(2,2), friends(4,3), aux2(1,1), aux2(4,2), aux2(2,4), aux1(1,1), smokes(4), aux2(3,2), aux1(3,2), friends(2,4), friends(4,2), aux2(3,3), aux1(2,4), aux1(4,4), aux2(1,3), aux0(4), aux0(1), friends(3,2), aux1(2,2), aux1(3,4), friends(3,1), aux2(1,2), aux2(3,1), friends(4,4), friends(1,3), cancer(4), aux2(4,1), aux1(1,3), aux1(2,3)}
-[D 210416 10:03:14 sampler:32] {111000: {'4'}, 111100: {'1'}, 111010: {'3'}, 111110: set(), 011001: set(), 111101: set(), 011011: set(), 111111: {'2'}}
-[D 210416 10:03:14 sampler:83] {aux2(2,1), friends(2,2), aux0(3), aux1(1,4), aux2(2,3), friends(1,2), aux1(3,1), aux0(2), aux1(4,2), aux1(3,3), friends(1,4), aux2(4,4), aux1(1,2), aux1(4,1), aux2(1,4), aux1(2,1), cancer(2), friends(4,3), aux2(2,2), aux2(4,2), aux2(1,1), friends(3,4), aux2(2,4), friends(3,3), aux1(1,1), aux1(3,2), friends(2,4), aux2(3,3), friends(4,2), smokes(2), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), cancer(1), aux1(2,2), aux1(3,4), friends(3,1), aux2(4,1), aux1(1,3), aux1(2,3)}
-[D 210416 10:03:14 sampler:32] {111000: {'4'}, 111100: {'3'}, 111010: {'1'}, 111110: set(), 011001: set(), 111101: set(), 011011: set(), 111111: {'2'}}
-[D 210416 10:03:14 sampler:83] {aux2(2,1), friends(2,2), aux2(4,3), aux0(3), aux1(1,4), aux2(2,3), friends(2,1), friends(1,2), aux1(3,1), aux0(2), cancer(3), aux1(4,2), aux1(3,3), aux2(3,4), aux2(4,4), aux1(1,2), aux1(4,1), aux2(1,4), cancer(2), friends(1,1), friends(4,3), aux2(2,2), aux2(1,1), aux2(4,2), aux2(2,4), aux1(1,1), aux1(3,2), friends(2,4), aux2(3,3), friends(4,2), smokes(2), aux1(2,4), aux1(4,4), aux1(4,3), aux0(4), aux0(1), friends(3,2), aux1(2,2), aux1(3,4), aux2(3,1), friends(1,3), aux2(4,1), aux1(1,3), aux1(2,3)}
-[D 210416 10:03:14 sampler:32] {111000: {'4', '3'}, 111100: set(), 111010: set(), 111110: {'1'}, 011001: set(), 111101: set(), 011011: set(), 111111: {'2'}}
-[D 210416 10:03:14 sampler:83] {friends(2,2), aux2(4,3), aux0(3), aux1(1,4), aux2(2,3), friends(2,1), friends(1,2), friends(4,1), aux1(3,1), aux0(2), aux2(3,4), aux1(3,3), aux1(4,2), aux1(1,2), aux2(4,4), aux1(4,1), aux2(1,4), cancer(2), friends(1,1), friends(4,3), aux2(2,2), aux2(1,1), aux2(4,2), friends(3,4), aux2(2,4), aux1(1,1), aux2(3,2), aux1(3,2), aux2(3,3), friends(4,2), smokes(2), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), cancer(1), aux1(2,2), aux1(3,4), friends(3,1), aux1(1,3), aux1(2,3)}
-[D 210416 10:03:14 sampler:32] {111000: set(), 111100: set(), 111010: set(), 111110: {'1', '3', '2'}, 011001: set(), 111101: set(), 011011: set(), 111111: {'4'}}
-[D 210416 10:03:14 sampler:83] {aux2(2,1), friends(2,2), aux0(3), aux2(4,3), aux1(1,4), aux2(2,3), friends(2,1), friends(1,2), aux1(3,1), friends(2,3), aux0(2), friends(4,1), cancer(3), aux1(3,3), aux2(3,4), aux1(1,2), aux2(4,4), friends(1,4), aux1(4,2), aux1(4,1), aux1(2,1), aux2(1,4), cancer(2), friends(1,1), aux2(2,2), friends(4,3), aux2(1,1), aux2(4,2), aux2(2,4), friends(3,4), friends(3,3), aux1(1,1), smokes(4), aux2(3,2), aux1(3,2), aux2(3,3), friends(4,2), friends(2,4), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), cancer(1), aux1(2,2), aux1(3,4), friends(3,1), aux2(1,2), aux2(3,1), friends(4,4), friends(1,3), cancer(4), aux2(4,1), aux1(1,3), aux1(2,3)}
-[D 210416 10:03:14 sampler:32] {111000: set(), 111100: {'4', '2'}, 111010: {'1', '3'}, 111110: set(), 011001: set(), 111101: set(), 011011: set(), 111111: set()}
-[D 210416 10:03:14 sampler:83] {aux2(2,1), aux2(4,3), aux0(3), aux1(1,4), aux2(2,3), friends(2,1), friends(1,2), aux0(2), friends(4,1), friends(2,3), aux1(3,1), aux2(3,4), aux1(4,2), aux1(3,3), friends(1,4), aux2(4,4), aux1(1,2), aux1(4,1), aux1(2,1), aux2(1,4), cancer(2), friends(1,1), aux2(2,2), friends(4,3), aux2(1,1), aux2(4,2), aux2(2,4), friends(3,4), friends(3,3), aux1(1,1), aux2(3,2), aux1(3,2), friends(2,4), friends(4,2), aux2(3,3), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), aux1(2,2), aux1(3,4), aux2(3,1), aux2(1,2), cancer(4), aux2(4,1), aux1(1,3), aux1(2,3)}
-[I 210416 10:03:14 sampler:142] Samples:
-[I 210416 10:03:14 sampler:144] {aux0(3), aux2(4,3), friends(2,1), friends(2,3), aux0(2), aux1(3,1), friends(4,1), aux2(3,4), aux1(3,3), aux1(4,2), aux1(1,2), aux2(4,4), friends(1,4), aux1(4,1), aux1(2,1), aux2(1,4), smokes(1), aux2(2,2), aux2(4,2), aux2(1,1), aux2(2,4), friends(3,4), friends(3,3), aux1(1,1), aux2(3,2), aux1(3,2), aux2(3,3), friends(4,2), aux1(2,4), aux1(4,4), aux1(4,3), aux0(4), aux0(1), aux1(2,2), cancer(1), aux1(3,4), aux2(3,1), friends(4,4), aux2(1,2), cancer(4), friends(1,3), aux2(4,1), aux1(2,3)}
-[I 210416 10:03:14 sampler:144] {aux2(2,1), friends(2,2), aux2(4,3), aux0(3), aux1(1,4), aux2(2,3), friends(2,1), friends(2,3), aux1(3,1), friends(1,2), aux0(2), friends(4,1), aux2(3,4), aux1(3,3), aux1(4,2), friends(1,4), aux2(4,4), aux1(1,2), aux1(4,1), aux1(2,1), aux2(1,4), smokes(1), cancer(2), friends(1,1), friends(4,3), aux2(2,2), aux2(1,1), aux2(4,2), friends(3,4), aux2(2,4), aux1(1,1), aux2(3,2), aux1(3,2), aux2(3,3), friends(2,4), friends(4,2), smokes(2), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), cancer(1), aux1(2,2), aux1(3,4), aux2(3,1), aux2(1,2), friends(3,1), friends(1,3), aux2(4,1), aux1(1,3), aux1(2,3)}
-[I 210416 10:03:14 sampler:144] {aux2(2,1), aux0(3), aux2(4,3), aux1(1,4), friends(2,1), friends(2,3), aux0(2), aux1(3,1), friends(4,1), aux1(3,3), aux1(4,2), aux1(1,2), aux2(4,4), friends(1,4), aux1(2,1), aux2(1,4), friends(1,1), aux2(2,2), aux2(1,1), aux2(4,2), aux2(2,4), friends(3,4), friends(3,3), aux1(1,1), smokes(4), aux2(3,2), aux1(3,2), aux2(3,3), friends(2,4), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), aux1(2,2), cancer(1), aux1(3,4), aux2(3,1), aux2(1,2), cancer(4), aux2(4,1), aux1(1,3), aux1(2,3)}
-[I 210416 10:03:14 sampler:144] {aux2(2,1), aux0(3), aux2(4,3), aux1(1,4), friends(2,3), aux0(2), friends(1,2), aux1(3,1), friends(4,1), cancer(3), aux1(3,3), aux2(3,4), aux1(4,2), aux2(4,4), aux1(1,2), aux1(4,1), aux1(2,1), aux2(1,4), friends(1,1), aux2(2,2), aux2(1,1), aux2(2,4), friends(3,4), aux1(1,1), aux2(3,2), aux1(3,2), aux2(3,3), friends(4,2), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), aux1(2,2), cancer(1), aux1(3,4), aux2(3,1), friends(4,4), friends(3,1), aux1(1,3), aux1(2,3)}
-[I 210416 10:03:14 sampler:144] {aux2(2,1), aux0(3), aux1(1,4), aux2(2,3), friends(2,3), aux0(2), friends(4,1), aux1(3,1), cancer(3), aux1(3,3), aux2(3,4), aux1(1,2), friends(1,4), aux2(4,4), aux1(4,2), aux1(4,1), aux1(2,1), aux2(1,4), aux2(2,2), friends(4,3), aux2(1,1), aux2(4,2), aux2(2,4), aux1(1,1), smokes(4), aux2(3,2), aux1(3,2), friends(2,4), friends(4,2), aux2(3,3), aux1(2,4), aux1(4,4), aux2(1,3), aux0(4), aux0(1), friends(3,2), aux1(2,2), aux1(3,4), friends(3,1), aux2(1,2), aux2(3,1), friends(4,4), friends(1,3), cancer(4), aux2(4,1), aux1(1,3), aux1(2,3)}
-[I 210416 10:03:14 sampler:144] {aux2(2,1), friends(2,2), aux0(3), aux1(1,4), aux2(2,3), friends(1,2), aux1(3,1), aux0(2), aux1(4,2), aux1(3,3), friends(1,4), aux2(4,4), aux1(1,2), aux1(4,1), aux2(1,4), aux1(2,1), cancer(2), friends(4,3), aux2(2,2), aux2(4,2), aux2(1,1), friends(3,4), aux2(2,4), friends(3,3), aux1(1,1), aux1(3,2), friends(2,4), aux2(3,3), friends(4,2), smokes(2), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), cancer(1), aux1(2,2), aux1(3,4), friends(3,1), aux2(4,1), aux1(1,3), aux1(2,3)}
-[I 210416 10:03:14 sampler:144] {aux2(2,1), friends(2,2), aux2(4,3), aux0(3), aux1(1,4), aux2(2,3), friends(2,1), friends(1,2), aux1(3,1), aux0(2), cancer(3), aux1(4,2), aux1(3,3), aux2(3,4), aux2(4,4), aux1(1,2), aux1(4,1), aux2(1,4), cancer(2), friends(1,1), friends(4,3), aux2(2,2), aux2(1,1), aux2(4,2), aux2(2,4), aux1(1,1), aux1(3,2), friends(2,4), aux2(3,3), friends(4,2), smokes(2), aux1(2,4), aux1(4,4), aux1(4,3), aux0(4), aux0(1), friends(3,2), aux1(2,2), aux1(3,4), aux2(3,1), friends(1,3), aux2(4,1), aux1(1,3), aux1(2,3)}
-[I 210416 10:03:14 sampler:144] {friends(2,2), aux2(4,3), aux0(3), aux1(1,4), aux2(2,3), friends(2,1), friends(1,2), friends(4,1), aux1(3,1), aux0(2), aux2(3,4), aux1(3,3), aux1(4,2), aux1(1,2), aux2(4,4), aux1(4,1), aux2(1,4), cancer(2), friends(1,1), friends(4,3), aux2(2,2), aux2(1,1), aux2(4,2), friends(3,4), aux2(2,4), aux1(1,1), aux2(3,2), aux1(3,2), aux2(3,3), friends(4,2), smokes(2), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), cancer(1), aux1(2,2), aux1(3,4), friends(3,1), aux1(1,3), aux1(2,3)}
-[I 210416 10:03:14 sampler:144] {aux2(2,1), friends(2,2), aux0(3), aux2(4,3), aux1(1,4), aux2(2,3), friends(2,1), friends(1,2), aux1(3,1), friends(2,3), aux0(2), friends(4,1), cancer(3), aux1(3,3), aux2(3,4), aux1(1,2), aux2(4,4), friends(1,4), aux1(4,2), aux1(4,1), aux1(2,1), aux2(1,4), cancer(2), friends(1,1), aux2(2,2), friends(4,3), aux2(1,1), aux2(4,2), aux2(2,4), friends(3,4), friends(3,3), aux1(1,1), smokes(4), aux2(3,2), aux1(3,2), aux2(3,3), friends(4,2), friends(2,4), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), cancer(1), aux1(2,2), aux1(3,4), friends(3,1), aux2(1,2), aux2(3,1), friends(4,4), friends(1,3), cancer(4), aux2(4,1), aux1(1,3), aux1(2,3)}
-[I 210416 10:03:14 sampler:144] {aux2(2,1), aux2(4,3), aux0(3), aux1(1,4), aux2(2,3), friends(2,1), friends(1,2), aux0(2), friends(4,1), friends(2,3), aux1(3,1), aux2(3,4), aux1(4,2), aux1(3,3), friends(1,4), aux2(4,4), aux1(1,2), aux1(4,1), aux1(2,1), aux2(1,4), cancer(2), friends(1,1), aux2(2,2), friends(4,3), aux2(1,1), aux2(4,2), aux2(2,4), friends(3,4), friends(3,3), aux1(1,1), aux2(3,2), aux1(3,2), friends(2,4), friends(4,2), aux2(3,3), aux1(2,4), aux1(4,4), aux1(4,3), aux2(1,3), aux0(4), aux0(1), friends(3,2), aux1(2,2), aux1(3,4), aux2(3,1), aux2(1,2), cancer(4), aux2(4,1), aux1(1,3), aux1(2,3)}
+[D 210416 20:12:56 context:88] sentence for wfomc: (aux0(x) <=> (smokes(x) => cancer(x))) ^ (aux1(x,y) <=> ((friends(x,y) ^ smokes(x)) => smokes(y))) ^ (aux2(x,y) <=> (friends(x,y) => friends(y,x)))
+[D 210416 20:12:56 cell_graph:47] prednames: [<Predicate: aux0(person)>, <Predicate: aux1(person,person)>, <Predicate: aux2(person,person)>, <Predicate: cancer(person)>, <Predicate: friends(person,person)>, <Predicate: smokes(person)>]
+[D 210416 20:12:56 cell_graph:54] before filtering, the number of cells: 64
+[D 210416 20:12:56 cell_graph:107] filtered cell: 000000
+[D 210416 20:12:56 cell_graph:107] filtered cell: 100000
+[D 210416 20:12:56 cell_graph:107] filtered cell: 010000
+[D 210416 20:12:56 cell_graph:107] filtered cell: 110000
+[D 210416 20:12:56 cell_graph:107] filtered cell: 001000
+[D 210416 20:12:56 cell_graph:107] filtered cell: 101000
+[D 210416 20:12:56 cell_graph:107] filtered cell: 011000
+[D 210416 20:12:56 cell_graph:107] filtered cell: 000100
+[D 210416 20:12:56 cell_graph:107] filtered cell: 100100
+[D 210416 20:12:56 cell_graph:107] filtered cell: 010100
+[D 210416 20:12:56 cell_graph:107] filtered cell: 110100
+[D 210416 20:12:56 cell_graph:107] filtered cell: 001100
+[D 210416 20:12:56 cell_graph:107] filtered cell: 101100
+[D 210416 20:12:56 cell_graph:107] filtered cell: 011100
+[D 210416 20:12:56 cell_graph:107] filtered cell: 000010
+[D 210416 20:12:56 cell_graph:107] filtered cell: 100010
+[D 210416 20:12:56 cell_graph:107] filtered cell: 010010
+[D 210416 20:12:56 cell_graph:107] filtered cell: 110010
+[D 210416 20:12:56 cell_graph:107] filtered cell: 001010
+[D 210416 20:12:56 cell_graph:107] filtered cell: 101010
+[D 210416 20:12:56 cell_graph:107] filtered cell: 011010
+[D 210416 20:12:56 cell_graph:107] filtered cell: 000110
+[D 210416 20:12:56 cell_graph:107] filtered cell: 100110
+[D 210416 20:12:56 cell_graph:107] filtered cell: 010110
+[D 210416 20:12:56 cell_graph:107] filtered cell: 110110
+[D 210416 20:12:56 cell_graph:107] filtered cell: 001110
+[D 210416 20:12:56 cell_graph:107] filtered cell: 101110
+[D 210416 20:12:56 cell_graph:107] filtered cell: 011110
+[D 210416 20:12:56 cell_graph:107] filtered cell: 000001
+[D 210416 20:12:56 cell_graph:107] filtered cell: 100001
+[D 210416 20:12:56 cell_graph:107] filtered cell: 010001
+[D 210416 20:12:56 cell_graph:107] filtered cell: 110001
+[D 210416 20:12:56 cell_graph:107] filtered cell: 001001
+[D 210416 20:12:56 cell_graph:107] filtered cell: 101001
+[D 210416 20:12:56 cell_graph:107] filtered cell: 111001
+[D 210416 20:12:56 cell_graph:107] filtered cell: 000101
+[D 210416 20:12:56 cell_graph:107] filtered cell: 100101
+[D 210416 20:12:56 cell_graph:107] filtered cell: 010101
+[D 210416 20:12:56 cell_graph:107] filtered cell: 110101
+[D 210416 20:12:56 cell_graph:107] filtered cell: 001101
+[D 210416 20:12:56 cell_graph:107] filtered cell: 101101
+[D 210416 20:12:56 cell_graph:107] filtered cell: 011101
+[D 210416 20:12:56 cell_graph:107] filtered cell: 000011
+[D 210416 20:12:56 cell_graph:107] filtered cell: 100011
+[D 210416 20:12:56 cell_graph:107] filtered cell: 010011
+[D 210416 20:12:56 cell_graph:107] filtered cell: 110011
+[D 210416 20:12:56 cell_graph:107] filtered cell: 001011
+[D 210416 20:12:56 cell_graph:107] filtered cell: 101011
+[D 210416 20:12:56 cell_graph:107] filtered cell: 111011
+[D 210416 20:12:56 cell_graph:107] filtered cell: 000111
+[D 210416 20:12:56 cell_graph:107] filtered cell: 100111
+[D 210416 20:12:56 cell_graph:107] filtered cell: 010111
+[D 210416 20:12:56 cell_graph:107] filtered cell: 110111
+[D 210416 20:12:56 cell_graph:107] filtered cell: 001111
+[D 210416 20:12:56 cell_graph:107] filtered cell: 101111
+[D 210416 20:12:56 cell_graph:107] filtered cell: 011111
+[D 210416 20:12:56 cell_graph:56] after filtering, the number of cells: 8
+[I 210416 20:12:56 cell_graph:66] predicates: [<Predicate: aux0(person)>, <Predicate: aux1(person,person)>, <Predicate: aux2(person,person)>, <Predicate: cancer(person)>, <Predicate: friends(person,person)>, <Predicate: smokes(person)>]
+[I 210416 20:12:56 cell_graph:68] s and w for cell 111000: [(1295.1850608798914+0j)], [(200.33680997479172+0j)]
+[I 210416 20:12:56 cell_graph:68] s and w for cell 111100: [(1295.1850608798914+0j)], [(200.33680997479172+0j)]
+[I 210416 20:12:56 cell_graph:68] s and w for cell 111010: [(1295.1850608798914+0j)], [(200.33680997479172+0j)]
+[I 210416 20:12:56 cell_graph:68] s and w for cell 111110: [(1295.1850608798914+0j)], [(200.33680997479172+0j)]
+[I 210416 20:12:56 cell_graph:68] s and w for cell 011001: [(1295.1850608798914+0j)], [(21.75840239619708+0j)]
+[I 210416 20:12:56 cell_graph:68] s and w for cell 111101: [(1295.1850608798914+0j)], [(200.33680997479172+0j)]
+[I 210416 20:12:56 cell_graph:68] s and w for cell 011011: [(1295.1850608798914+0j)], [(21.75840239619708+0j)]
+[I 210416 20:12:56 cell_graph:68] s and w for cell 111111: [(1295.1850608798914+0j)], [(200.33680997479172+0j)]
+[I 210416 20:12:56 cell_graph:74] 0-th r: 
+    defaultdict(<class 'dict'>, {111000: {111100: (1295.1850608798914+0j), 111010: (1295.1850608798914+0j), 111110: (1295.1850608798914+0j), 011001: (728.496402686025+0j), 111101: (728.496402686025+0j), 011011: (728.496402686025+0j), 111111: (728.496402686025+0j)}, 111100: {111010: (1295.1850608798914+0j), 111110: (1295.1850608798914+0j), 011001: (728.496402686025+0j), 111101: (728.496402686025+0j), 011011: (728.496402686025+0j), 111111: (728.496402686025+0j)}, 111010: {111110: (1295.1850608798914+0j), 011001: (728.496402686025+0j), 111101: (728.496402686025+0j), 011011: (728.496402686025+0j), 111111: (728.496402686025+0j)}, 111110: {011001: (728.496402686025+0j), 111101: (728.496402686025+0j), 011011: (728.496402686025+0j), 111111: (728.496402686025+0j)}, 011001: {111101: (1295.1850608798914+0j), 011011: (1295.1850608798914+0j), 111111: (1295.1850608798914+0j)}, 111101: {011011: (1295.1850608798914+0j), 111111: (1295.1850608798914+0j)}, 011011: {111111: (1295.1850608798914+0j)}})
+[I 210416 20:12:56 wfomc:72] WFOMC: (6.708089959839357e+45+0j)

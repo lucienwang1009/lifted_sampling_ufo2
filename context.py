@@ -1,4 +1,4 @@
-import math
+import cmath
 
 from pracmln import MLN
 from pracmln.mln.mlnpreds import Predicate
@@ -14,10 +14,19 @@ aux_pred_prefix = 'aux'
 class Context(object):
     def __init__(self, mln):
         self.mln = mln
+        # the length of weight vector
+        self.w_dim = 0
+        self._convert_weight()
+
         self.formula, self.weights = self._to_wfomc_sentence()
         self.preds = self.mln.predicates
 
-        self.gnd_formula_ab = self.ground_formula('a', 'b')
+        gnd_formula_ab1 = self.ground_formula('a', 'b')
+        gnd_formula_ab2 = self.ground_formula('b', 'a')
+        self.mln.formula(
+            '(' + str(gnd_formula_ab1) + ') ^ (' + str(gnd_formula_ab2) + ')'
+        )
+        self.gnd_formula_ab = self.mln.formulas[-1]
         self.gnd_formula_cc = self.ground_formula('c', 'c')
         # cache evidences
         self.same_gnd_atoms = [
@@ -35,6 +44,15 @@ class Context(object):
             for p in self.preds
         ]
 
+    def _convert_weight(self):
+        for f in self.mln.formulas:
+            weights = f.weight.split(',')
+            if self.w_dim == 0:
+                self.w_dim = len(weights)
+            elif self.w_dim != len(weights):
+                raise RuntimeError('Different lengths of weight vector')
+            f.weight = list(map(complex, weights))
+
     def ground_formula(self, c1, c2):
         varnames = list(self.formula.vardoms().keys())
         gnd_formula = self.formula.ground(
@@ -42,9 +60,9 @@ class Context(object):
         )
         return gnd_formula
 
-    def get_weight(self, predname):
+    def get_weight(self, predname, index):
         if predname in self.weights:
-            return self.weights[predname]
+            return self.weights[predname][index]
         return (1, 1)
 
     def _to_wfomc_sentence(self):
@@ -53,7 +71,9 @@ class Context(object):
         for index, formula in enumerate(self.mln.formulas):
             aux_predname = '{}{}'.format(aux_pred_prefix, index)
             # set weight for aux predicate
-            weights[aux_predname] = (math.exp(float(formula.weight)), 1)
+            weights[aux_predname] = list(map(
+                lambda x: (cmath.exp(x), 1), formula.weight
+            ))
             # add predicate to mln
             self.mln.predicate(Predicate(aux_predname,
                                          list(formula.vardoms().values())))

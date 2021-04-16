@@ -11,17 +11,16 @@ from context import Context
 from cell_graph import CellGraph
 
 
-def product_wmc(cell_graph, partition):
+def product_wmc(cell_graph, partition, index):
     res = 1
     for i, cell_i in enumerate(cell_graph.cells):
         n_i = partition[i]
-        res *= (cell_i.inherent_weight ** n_i)
-        res *= (cell_i.w ** n_i)
-        res *= ((cell_i.s * cell_i.s) ** (n_i * (n_i - 1) / 2))
+        res *= (cell_i.w[index] ** n_i)
+        res *= (cell_i.s[index] ** (n_i * (n_i - 1) / 2))
         for j in range(i + 1, len(cell_graph.cells)):
             n_j = partition[j]
             cell_j = cell_graph.cells[j]
-            res *= ((cell_graph.r[cell_i][cell_j] * cell_graph.r[cell_j][cell_i]) ** (n_i * n_j))
+            res *= (cell_graph.r[index][cell_i][cell_j] ** (n_i * n_j))
     return res
 
 
@@ -37,9 +36,10 @@ def wfomc(mln):
         n_cells, domain_size
     )
     res = 0
-    for partition, coef in iterator:
-        config_wfomc = (coef * product_wmc(cell_graph, partition))
-        res += config_wfomc
+    for d in range(context.w_dim):
+        for partition, coef in iterator:
+            config_wfomc = (coef * product_wmc(cell_graph, partition, d))
+            res += config_wfomc
     return res
 
 

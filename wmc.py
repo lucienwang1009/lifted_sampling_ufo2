@@ -8,9 +8,9 @@ from utils import to_nnf
 from atom import Atom
 
 class WMC(object):
-    def __init__(self, gnd_formula, get_weight):
+    def __init__(self, gnd_formula, context):
         self.gnd_formula = gnd_formula
-        self.get_weight = get_weight
+        self.context = context
         self.nnf = to_nnf(gnd_formula)
         self.var_weights = self._get_var_weights()
 
@@ -18,19 +18,22 @@ class WMC(object):
         weights = {}
         for varname in self.nnf.vars():
             var = Var(varname)
-            w = self.get_weight(Atom.from_var(var).predname)
-            weights[var] = w[0]
-            weights[var.negate()] = w[1]
+            weights[var] = []
+            weights[var.negate()] = []
+            for d in range(self.context.w_dim):
+                w = self.context.get_weight(Atom.from_var(var).predname, d)
+                weights[var].append(w[0])
+                weights[var.negate()].append(w[1])
         return weights
 
-    def wmc(self, evidences=None):
+    def wmc(self, evidences=None, index=0):
         def weights_fn(var):
             if var in evidences:
                 # NOTE: avoid duplicate multiplications
                 return 1
             elif var.negate() in evidences:
                 return 0
-            return self.var_weights[var]
+            return self.var_weights[var][index]
         return amc.WMC(self.nnf, weights_fn)
 
 
