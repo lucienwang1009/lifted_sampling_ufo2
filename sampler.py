@@ -4,6 +4,7 @@ import os
 import logzero
 import logging
 
+from copy import deepcopy
 from pracmln import MLN
 from logzero import logger
 
@@ -16,8 +17,8 @@ from atom import Atom
 
 class Sampler(object):
     def __init__(self, mln):
-        self.mln = mln
-        self.context = Context(mln)
+        self.mln = deepcopy(mln)
+        self.context = Context(self.mln)
         self.cell_graph = CellGraph(self.context)
         self.config, self.weights = self._get_config_weights()
         self.domain = set(*self.context.mln.domains.values())
