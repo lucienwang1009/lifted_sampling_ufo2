@@ -1,6 +1,3 @@
-import pandas as pd
-
-from collections import defaultdict
 from logzero import logger
 from pracmln import MLN
 
@@ -59,8 +56,8 @@ class CellGraph(object):
         self._compute_w()
         self._compute_s()
         # [weight dim: [cell1: [cell2: r]]]
-        # self.r, self.r_samplers = self._compute_r()
-        self.r = self._compute_r()
+        self.r, self.r_samplers = self._compute_r()
+        # self.r = self._compute_r()
 
     def show(self):
         logger.info('predicates: %s', self.context.preds)
@@ -123,37 +120,37 @@ class CellGraph(object):
 
     def _compute_s(self):
         for cell in self.cells:
-            s = []
+            cell.s = []
+            evidences = cell.decode('a')
+            evidences = evidences.union(cell.decode('b'))
+            cell.s_sampler = WMCSampler(self.wmc_ab, evidences, self.context)
             for d in range(self.context.w_dim):
-                evidences = cell.decode('a')
-                evidences = evidences.union(cell.decode('b'))
                 # evidences = self._get_evidences(cell, self.context.left_gnd_atoms)
                 # evidences = evidences.union(
                 #     self._get_evidences(cell, self.context.right_gnd_atoms)
                 # )
-                s.append(self.wmc_ab.wmc(evidences, d))
-            cell.s = s
-            # cell.s_sampler = WMCSampler(self.wmc_ab, evidences)
+                cell.s.append(self.wmc_ab.wmc(evidences, d))
 
     def _compute_r(self):
-        r = []
-        for d in range(self.context.w_dim):
-            rs = defaultdict(dict)
-            # samplers = defaultdict(dict)
-            for i, cell in enumerate(self.cells):
-                for j, other_cell in enumerate(self.cells):
-                    if i >= j:
-                        continue
-                    evidences = cell.decode('a')
-                    evidences = evidences.union(other_cell.decode('b'))
+        r = [{}] * self.context.w_dim
+        r_samplers = {}
+        for i, cell in enumerate(self.cells):
+            for j, other_cell in enumerate(self.cells):
+                if i >= j:
+                    continue
+                evidences = cell.decode('a')
+                evidences = evidences.union(other_cell.decode('b'))
+                r_samplers[frozenset((cell, other_cell))] = WMCSampler(
+                    self.wmc_ab, evidences, self.context
+                )
+                for d in range(self.context.w_dim):
                     # evidences = self._get_evidences(cell, self.context.left_gnd_atoms)
                     # evidences = evidences.union(
                     #     self._get_evidences(other_cell, self.context.right_gnd_atoms)
                     # )
-                    rs[cell][other_cell] = self.wmc_ab.wmc(evidences, d)
-                    # samplers[cell][other_cell] = WMCSampler(self.wmc_ab, evidences)
-            r.append(rs)
-        return r  # , samplers
+                    tmp = self.wmc_ab.wmc(evidences, d)
+                    r[d][frozenset((cell, other_cell))] = tmp
+        return r, r_samplers
 
 
 if __name__ == '__main__':

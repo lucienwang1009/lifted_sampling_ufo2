@@ -20,7 +20,7 @@ def product_wmc(cell_graph, partition, index):
         for j in range(i + 1, len(cell_graph.cells)):
             n_j = partition[j]
             cell_j = cell_graph.cells[j]
-            res *= (cell_graph.r[index][cell_i][cell_j] ** (n_i * n_j))
+            res *= (cell_graph.r[index][frozenset((cell_i, cell_j))] ** (n_i * n_j))
     return res
 
 

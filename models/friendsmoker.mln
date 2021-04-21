@@ -4,13 +4,12 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-person = {1, 2, 3, 4, 5}
+person = {1, 2}
 //, Wannes, Jesse, Luc, 1, 2, 3, 4, 5, 6}
 friends(person,person)
 smokes(person)
 cancer(person)
-2.22 smokes(x) => cancer(x)
+1 smokes(x) => cancer(x)
 2.08 friends(x,y) ^ smokes(x) => smokes(y)
 // 0.6 exist y friends(x,y)
 // smokes(2).
-1 friends(x,y) => friends(y,x)

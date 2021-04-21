@@ -38,9 +38,10 @@ class WMC(object):
 
 
 class WMCSampler(object):
-    def __init__(self, wmc, evidences):
+    def __init__(self, wmc, evidences, context):
         self.wmc = wmc
         self.evidences = evidences
+        self.context = context
         self.unknown_vars = self._get_unknown_vars()
         self.codes, self.dist = self._get_distribution()
 
@@ -55,7 +56,7 @@ class WMCSampler(object):
 
     def _get_distribution(self):
         codes = []
-        dist = []
+        dist = [[]] * self.context.w_dim
         for code in range(0, 2 ** len(self.unknown_vars) - 1):
             evidences = deepcopy(self.evidences)
             for i in range(len(self.unknown_vars)):
@@ -64,10 +65,11 @@ class WMCSampler(object):
                 else:
                     evidences.add(self.unknown_vars[i].negate())
             codes.append(code)
-            dist.append(self.wmc.wmc(evidences))
+            for k in range(self.context.w_dim):
+                dist[k].append(self.wmc.wmc(evidences))
         return codes, dist
 
-    def _decode(self, code):
+    def decode(self, code):
         decoded_vars = []
         for i in range(len(self.unknown_vars)):
             if (code & (1 << i)):
