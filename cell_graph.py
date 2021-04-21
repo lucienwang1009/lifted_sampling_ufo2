@@ -7,13 +7,10 @@ from atom import Atom
 
 
 class Cell(object):
-    def __init__(self, code, context, s=None, w=None, inherent_weight=None):
+    def __init__(self, code, context, inherent_weight=None):
         self.code = code
         self.context = context
-        self.s = s
-        self.w = w
-        self.w_sampler = None
-        self.s_sampler = None
+        self.inherent_weight = inherent_weight
 
     def decode(self, const, include_negative=True):
         evidences = set()
@@ -44,7 +41,9 @@ class CellGraph(object):
         logger.debug('prednames: %s', self.context.preds)
         # ground the sentence to (a,b) and (c,c)
         self.wmc_ab = WMC(self.context.gnd_formula_ab, self.context)
+        logger.debug('ground a b: %s', self.wmc_ab.gnd_formula)
         self.wmc_cc = WMC(self.context.gnd_formula_cc, self.context)
+        logger.debug('ground c c: %s', self.wmc_cc.gnd_formula)
         # build cells
         self.cells = self._build_cells()
         # filter cells
@@ -53,22 +52,20 @@ class CellGraph(object):
         logger.debug('after filtering, the number of cells: %s', len(self.cells))
 
         # compute weight for each cell and each pair of cells
-        self._compute_w()
-        self._compute_s()
+        self._compute_cell_weight()
         # [weight dim: [cell1: [cell2: r]]]
-        self.r, self.r_samplers = self._compute_r()
-        # self.r = self._compute_r()
+        self.edge_weight, self.samplers = self._compute_edge_weight()
 
     def show(self):
         logger.info('predicates: %s', self.context.preds)
         for cell in self.cells:
-            logger.info('s and w for cell %s: %s, %s',
-                        cell, cell.s, cell.w)
-        for d in range(self.context.w_dim):
+            logger.info('weight for cell %s: %s, %s',
+                        cell, cell.inherent_weight)
+        for k in range(self.context.w_dim):
             # data = pd.DataFrame(self.r[d], self.cells, self.cells)
             # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
             #     logger.info('%s-th r:\n%s', d, data)
-            logger.info('%s-th r: \n%s', d, self.r[d])
+            logger.info('%s-th r: \n%s', k, self.edge_weight[k])
 
     def _build_cells(self):
         cells = []
@@ -105,7 +102,7 @@ class CellGraph(object):
             return False
         return True
 
-    def _compute_w(self):
+    def _compute_cell_weight(self):
         for cell in self.cells:
             weights = []
             for d in range(self.context.w_dim):
@@ -116,41 +113,33 @@ class CellGraph(object):
                     else:
                         weight *= self.context.get_weight(self.context.preds[i].name, d)[1]
                 weights.append(weight)
-            cell.w = weights
+            cell.inherent_weight = weights
 
-    def _compute_s(self):
-        for cell in self.cells:
-            cell.s = []
-            evidences = cell.decode('a')
-            evidences = evidences.union(cell.decode('b'))
-            cell.s_sampler = WMCSampler(self.wmc_ab, evidences, self.context)
-            for d in range(self.context.w_dim):
-                # evidences = self._get_evidences(cell, self.context.left_gnd_atoms)
-                # evidences = evidences.union(
-                #     self._get_evidences(cell, self.context.right_gnd_atoms)
-                # )
-                cell.s.append(self.wmc_ab.wmc(evidences, d))
+    # def _compute_s(self):
+    #     for cell in self.cells:
+    #         cell.s = []
+    #         evidences = cell.decode('a')
+    #         evidences = evidences.union(cell.decode('b'))
+    #         cell.s_sampler = WMCSampler(self.wmc_ab, evidences, self.context)
+    #         for d in range(self.context.w_dim):
+    #             cell.s.append(self.wmc_ab.wmc(evidences, d))
 
-    def _compute_r(self):
-        r = [{}] * self.context.w_dim
-        r_samplers = {}
+    def _compute_edge_weight(self):
+        w = [{}] * self.context.w_dim
+        samplers = {}
         for i, cell in enumerate(self.cells):
             for j, other_cell in enumerate(self.cells):
-                if i >= j:
+                if i > j:
                     continue
                 evidences = cell.decode('a')
                 evidences = evidences.union(other_cell.decode('b'))
-                r_samplers[frozenset((cell, other_cell))] = WMCSampler(
+                samplers[frozenset((cell, other_cell))] = WMCSampler(
                     self.wmc_ab, evidences, self.context
                 )
                 for d in range(self.context.w_dim):
-                    # evidences = self._get_evidences(cell, self.context.left_gnd_atoms)
-                    # evidences = evidences.union(
-                    #     self._get_evidences(other_cell, self.context.right_gnd_atoms)
-                    # )
                     tmp = self.wmc_ab.wmc(evidences, d)
-                    r[d][frozenset((cell, other_cell))] = tmp
-        return r, r_samplers
+                    w[d][frozenset((cell, other_cell))] = tmp
+        return w, samplers
 
 
 if __name__ == '__main__':

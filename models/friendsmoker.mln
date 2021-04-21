@@ -9,7 +9,11 @@ person = {1, 2}
 friends(person,person)
 smokes(person)
 cancer(person)
-1 smokes(x) => cancer(x)
+2 smokes(x) => cancer(x)
 2.08 friends(x,y) ^ smokes(x) => smokes(y)
+// friends(1,1) v friends(2,2).
+// !cancer(1) ^ !cancer(2) ^ !smokes(2) ^ !smokes(1) ^ friends(1,1) ^ friends(1,2) ^ friends(2,2) ^ friends(2,1).
+// cancer(2) ^ cancer(3) ^ cancer(4) ^ friends(1,1) ^ friends(1,3) ^ friends(2,1) ^ friends(3,2) ^ friends(3,3) ^ friends(3,4) ^ friends(4,1) ^ smokes(4).
 // 0.6 exist y friends(x,y)
 // smokes(2).
+// 1 friends(x,y) => friends(y,x)

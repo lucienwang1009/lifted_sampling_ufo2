@@ -29,6 +29,7 @@ def main(args):
     c = Counter()
     for w in worlds:
         c.update(w)
+    logger.info('counter: %s', c)
     with WFOMCSolver() as s:
         ln_Z = s.solve(mln)
         for m in args.marginal:

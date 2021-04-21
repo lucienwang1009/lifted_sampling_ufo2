@@ -20,8 +20,8 @@ class WMC(object):
             var = Var(varname)
             weights[var] = []
             weights[var.negate()] = []
-            for d in range(self.context.w_dim):
-                w = self.context.get_weight(Atom.from_var(var).predname, d)
+            for k in range(self.context.w_dim):
+                w = self.context.get_weight(Atom.from_var(var).predname, k)
                 weights[var].append(w[0])
                 weights[var.negate()].append(w[1])
         return weights
@@ -43,6 +43,7 @@ class WMCSampler(object):
         self.evidences = evidences
         self.context = context
         self.unknown_vars = self._get_unknown_vars()
+        # dist = [world: [weight_dim: ]]
         self.codes, self.dist = self._get_distribution()
 
     def _get_unknown_vars(self):
@@ -56,17 +57,26 @@ class WMCSampler(object):
 
     def _get_distribution(self):
         codes = []
-        dist = [[]] * self.context.w_dim
-        for code in range(0, 2 ** len(self.unknown_vars) - 1):
+        dist = []
+        for code in range(2 ** len(self.unknown_vars)):
+            weight = [1] * self.context.w_dim
             evidences = deepcopy(self.evidences)
             for i in range(len(self.unknown_vars)):
+                var = None
                 if (code & (1 << i)):
-                    evidences.add(self.unknown_vars[i])
+                    var = self.unknown_vars[i]
                 else:
-                    evidences.add(self.unknown_vars[i].negate())
+                    var = self.unknown_vars[i].negate()
+                evidences.add(var)
+                for k in range(self.context.w_dim):
+                    weight[k] *= self.wmc.var_weights[var][k]
             codes.append(code)
-            for k in range(self.context.w_dim):
-                dist[k].append(self.wmc.wmc(evidences))
+            # NOTE: wmc on any dimension should be fine
+            is_valid = self.wmc.wmc(evidences)
+            if is_valid != 0:
+                dist.append(weight)
+            else:
+                dist.append([0] * self.context.w_dim)
         return codes, dist
 
     def decode(self, code):
