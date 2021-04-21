@@ -106,7 +106,10 @@ class Sampler(object):
             n_cells, domain_size
         )
         for partition, coef in iterator:
-            config_wfomc = (coef * product_wmc(self.cell_graph, partition))
+            config_wfomc = 0
+            for d in range(self.context.w_dim):
+                config_wfomc += (coef * product_wmc(self.cell_graph, partition))
+            config_wfomc *= coef
             config.append(partition)
             weights.append(config_wfomc)
         return config, weights
