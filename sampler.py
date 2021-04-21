@@ -8,6 +8,7 @@ from copy import deepcopy
 from pracmln import MLN
 from logzero import logger
 from copy import deepcopy
+from contexttimer import Timer
 
 from context import Context
 from cell_graph import CellGraph
@@ -23,20 +24,24 @@ class Sampler(object):
         self.cell_graph = CellGraph(self.context)
         self.config, self.weights = self._get_config_weights()
         logger.info('wfomc:%s', sum(self.weights))
-        logger.info(self.context.preds)
-        logger.info(self.cell_graph.cells)
-        logger.info(list(zip(self.config, self.weights)))
-        t = 0
-        for i, c in enumerate(self.config):
-            for idx in [1, 3, 5, 7]:
-                if c[idx] == 1:
-                    t += (self.weights[i] / 2)
-                elif c[idx] == 2:
-                    t += self.weights[i]
-        logger.info(t)
+        # logger.info(self.context.preds)
+        # logger.info(self.cell_graph.cells)
+        # logger.info(list(zip(self.config, self.weights)))
+        # t = 0
+        # for i, c in enumerate(self.config):
+        #     for idx in [1, 3, 5, 7]:
+        #         if c[idx] == 1:
+        #             t += (self.weights[i] / 2)
+        #         elif c[idx] == 2:
+        #             t += self.weights[i]
+        # logger.info(t)
         assert len(self.mln.domains) == 1, "only support one domain for now"
         self.domain = list(self.context.mln.domains.values())[0]
         logger.debug('domain: %s', self.domain)
+        # for measuring performance
+        self.t_sampling = 0
+        self.t_assigning = 0
+        self.t_sampling_worlds = 0
 
     def _compute_wmc_prod(self, cell_assignment):
         logger.debug('cell assignment: %s', cell_assignment)
@@ -58,132 +63,81 @@ class Sampler(object):
         return wmc_prod
 
     def _sample_from_config(self, config):
-        logger.debug('sample from cell configuration %s', config)
-        sampled_vars = set()
-        cell_assignment = {}
-        domain = set(self.domain)
-        cw = [1] * self.context.w_dim
-        for i, n in enumerate(config):
-            elements_sampled = set(random.sample(domain, n))
-            for element in elements_sampled:
-                cell_assignment[element] = self.cell_graph.cells[i]
-                # include the atoms of the cell type
-                sampled_vars = sampled_vars.union(
-                    self.cell_graph.cells[i].decode(
-                        element, include_negative=False
+        with Timer() as t:
+            logger.debug('sample from cell configuration %s', config)
+            sampled_vars = set()
+            cell_assignment = {}
+            # assign each element a cell type
+            random.shuffle(self.domain)
+            cw = [1] * self.context.w_dim
+            idx = 0
+            for i, n in enumerate(config):
+                for j in range(n):
+                    cell_assignment[self.domain[idx]] = self.cell_graph.cells[i]
+                    # include the atoms of the cell type
+                    sampled_vars = sampled_vars.union(
+                        self.cell_graph.cells[i].decode(
+                            self.domain[idx], include_negative=False
+                        )
                     )
-                )
-            domain = domain - elements_sampled
-            # compute cw
-            for k in range(self.context.w_dim):
-                cw[k] *= (self.cell_graph.cells[i].inherent_weight[k] ** n)
-        # compute wmc_prod
-        wmc_prod = self._compute_wmc_prod(cell_assignment)
-        logger.debug('wmc prod: %s', wmc_prod)
-        logger.debug('cw: %s', cw)
-
-        logger.debug('initial atoms: %s', sampled_vars)
-        q = [1] * self.context.w_dim
-        idx = 0
-        for i, x_i in enumerate(self.domain):
-            for j, x_j in enumerate(self.domain):
-                if i >= j:
-                    continue
-                logger.debug('sample the atom consisting of %s and %s', x_i, x_j)
-                sampler = None
-                cell_1 = cell_assignment[x_i]
-                cell_2 = cell_assignment[x_j]
-                sampler = self.cell_graph.samplers[frozenset((cell_1, cell_2))]
-                dist = []
-                # for gamma_idx in range(len(sampler.dist)):
-                #     gamma_w = 0
-                #     for k in range(self.context.w_dim):
-                #         gamma_w += (
-                #             cw[k] * q[k] * sampler.dist[gamma_idx][k] * wmc_prod[idx][k]
-                #         )
-                #     dist.append(gamma_w.real)
-                dist = [d[0].real for d in sampler.dist]
-                print(sampler.unknown_vars)
-                print(list(zip(dist, [sampler.decode(c) for c in sampler.codes])))
-                print(cw[0] * sum(dist) * q[0] * wmc_prod[idx][0])
-                # sample
-                sampled_code = random.choices(sampler.codes, weights=dist, k=1)[0]
-                sampled_vars_raw = sampler.decode(sampled_code)
-                # replace to real elements
-                sampled_vars_replaced = self._replace_consts(
-                    sampled_vars_raw,
-                    {'a': x_i, 'b': x_j}
-                )
-                sampled_vars = sampled_vars.union(sampled_vars_replaced)
-                # update q
+                    idx += 1
+                # compute cw
                 for k in range(self.context.w_dim):
-                    q[k] *= sampler.dist[sampled_code][k]
-                    # for var in sampler.unknown_vars:
-                    #     if var in sampled_vars_raw:
-                    #         q[k] *= sampler.wmc.var_weights[var][k]
-                    #     else:
-                    #         q[k] *= sampler.wmc.var_weights[var.negate()][k]
-                # move forward
-                idx += 1
-                logger.debug(
-                    'sampled atoms: %s', sampled_vars_replaced
-                )
-                logger.debug('updated q: %s', q)
+                    cw[k] *= (self.cell_graph.cells[i].inherent_weight[k] ** n)
+            # compute wmc_prod
+            wmc_prod = self._compute_wmc_prod(cell_assignment)
+            logger.debug('wmc prod: %s', wmc_prod)
+            logger.debug('cw: %s', cw)
+            self.t_assigning += t.elapsed
+
+        with Timer() as t:
+            logger.debug('initial atoms: %s', sampled_vars)
+            q = [1] * self.context.w_dim
+            idx = 0
+            for i, x_i in enumerate(self.domain):
+                for j, x_j in enumerate(self.domain):
+                    if i >= j:
+                        continue
+                    logger.debug('sample the atom consisting of %s and %s', x_i, x_j)
+                    sampler = None
+                    cell_1 = cell_assignment[x_i]
+                    cell_2 = cell_assignment[x_j]
+                    sampler = self.cell_graph.samplers[frozenset((cell_1, cell_2))]
+                    dist = []
+                    for gamma_idx in range(len(sampler.dist)):
+                        gamma_w = 0
+                        for k in range(self.context.w_dim):
+                            gamma_w += (
+                                cw[k] * q[k] * sampler.dist[gamma_idx][k] * wmc_prod[idx][k]
+                            )
+                        dist.append(gamma_w.real)
+                    # dist = [d[0].real for d in sampler.dist]
+                    logger.debug('unknown vars: %s', sampler.unknown_vars)
+                    logger.debug('dist: ')
+                    for d, c in zip(dist, [sampler.decode(c) for c in sampler.codes]):
+                        logger.debug('%s %s', c, d)
+                    logger.debug('weight: %s', cw[0] * sum(dist) * q[0] * wmc_prod[idx][0])
+                    # sample
+                    sampled_code = random.choices(sampler.codes, weights=dist, k=1)[0]
+                    sampled_vars_raw = sampler.decode(sampled_code)
+                    # replace to real elements
+                    sampled_vars_replaced = self._replace_consts(
+                        sampled_vars_raw,
+                        {'a': x_i, 'b': x_j}
+                    )
+                    sampled_vars = sampled_vars.union(sampled_vars_replaced)
+                    # update q
+                    for k in range(self.context.w_dim):
+                        q[k] *= sampler.dist[sampled_code][k]
+                    # move forward
+                    idx += 1
+                    logger.debug(
+                        'sampled atoms: %s', sampled_vars_replaced
+                    )
+                    logger.debug('updated q: %s', q)
+            self.t_sampling_worlds += t.elapsed
         assert idx == len(wmc_prod)
         return sampled_vars
-
-        # for cell_1 in self.cell_graph.cells:
-        #     n_1 = len(cell_domain[cell_1])
-        #     if n_1 == 0:
-        #         continue
-        #     # sample by s
-        #     s_samples = cell_1.s_sampler.sample(
-        #         n_1 * (n_1 - 1)
-        #     )
-        #     cnt = 0
-        #     for c_1 in cell_domain[cell_1]:
-        #         sampled_vars = sampled_vars.union(
-        #             cell_1.decode(c_1, include_negative=False)
-        #         )
-        #         for c_2 in cell_domain[cell_1]:
-        #             if c_1 == c_2:
-        #                 sampled_vars = sampled_vars.union(
-        #                     set(self._replace_consts(
-        #                         cell_1.w_sampler.sample(1)[0],
-        #                         {'c': c_1}
-        #                     ))
-        #                 )
-        #                 continue
-        #             sampled_vars = sampled_vars.union(
-        #                 set(self._replace_consts(
-        #                     s_samples[cnt],
-        #                     {'a': c_1, 'b': c_2}
-        #                 ))
-        #             )
-        #             cnt += 1
-        #     assert cnt == len(s_samples)
-
-        #     # sample by r
-        #     for cell_2 in self.cell_graph.cells:
-        #         cnt = 0
-        #         n_2 = len(cell_domain[cell_2])
-        #         if cell_1 == cell_2 or n_2 == 0:
-        #             continue
-        #         r_samples = self.cell_graph.r_samplers[cell_1][cell_2].sample(
-        #             n_1 * n_2
-        #         )
-        #         for c_1 in cell_domain[cell_1]:
-        #             for c_2 in cell_domain[cell_2]:
-        #                 sampled_vars = sampled_vars.union(
-        #                     set(self._replace_consts(
-        #                         r_samples[cnt],
-        #                         {'a': c_1, 'b': c_2}
-        #                     ))
-        #                 )
-        #                 cnt += 1
-        #         assert cnt == len(r_samples)
-        # logger.debug(sampled_vars)
-        # return sampled_vars
 
     def _replace_consts(self, vars, assign):
         replaced_vars = [
@@ -193,9 +147,18 @@ class Sampler(object):
 
     def sample(self, k=1):
         samples = []
-        sampled_configs = random.choices(self.config, weights=self.weights, k=k)
+        with Timer() as t:
+            sampled_configs = random.choices(self.config, weights=self.weights, k=k)
+            logger.info('elapsed time for sampling cell configurations: %s', t.elapsed)
+        self.t_assigning = 0
+        self.t_sampling = 0
+        self.t_sampling_worlds = 0
         for sampled_config in sampled_configs:
             samples.append(self._sample_from_config(sampled_config))
+        self.t_sampling = self.t_assigning + self.t_sampling_worlds
+        logger.info('total sampling time: %s', self.t_sampling)
+        logger.info('elapsed time for assigning cell type: %s', self.t_assigning)
+        logger.info('elapsed time for sampling possible worlds: %s', self.t_sampling_worlds)
         return samples
 
     def _get_config_weights(self):
@@ -242,7 +205,9 @@ if __name__ == '__main__':
     logzero.logfile('{}/log.txt'.format(args.output_dir), mode='w')
 
     mln = MLN.load(args.input, grammar='StandardGrammar')
-    sampler = Sampler(mln)
+    with Timer() as t:
+        sampler = Sampler(mln)
+    logger.info('elapsed time for initializing sampler: %s', t.elapsed)
     samples = sampler.sample(args.n_samples)
     logger.info('Samples:')
     for s in samples:
