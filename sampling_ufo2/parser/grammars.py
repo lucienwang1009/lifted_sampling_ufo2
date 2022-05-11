@@ -38,9 +38,10 @@ domainrules = """
 """
 
 constraint_rules = """
-    constraints = tree? ws* ccs?
+    constraints = (tree / arborescence)? ws* ccs?
 
     tree = "Tree[" sym + "]"
+    arborescence = "DTree[" sym "," ws? sym "]"
     ccs = cc (ws cc)*
     cc = "|" sym "|" ws? "=" ws? num
 """

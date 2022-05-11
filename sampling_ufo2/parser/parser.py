@@ -9,7 +9,7 @@ from collections import OrderedDict
 from sampling_ufo2.parser.grammars import mln_with_constraint_rules
 from sampling_ufo2.fol.syntax import Var, Const, Atom, Pred, Lit, DisjunctiveClause, CNF, Exist, QuantifiedFormula
 from sampling_ufo2.network.mln import MLN
-from sampling_ufo2.network.constraint import TreeConstraint, CardinalityConstraint
+from sampling_ufo2.network.constraint import TreeConstraint, CardinalityConstraint, ArborescenceConstraint
 
 
 class MLNParseException(RuntimeError):
@@ -189,6 +189,10 @@ class MLNConstraintVisitor(MLNVisitor):
         if tree is not None:
             if len(tree) == 1 and tree[0] in preds:
                 tree_constraint = TreeConstraint(preds[tree[0]])
+            elif len(tree) == 2 and tree[0] in preds \
+                    and tree[1] in preds:
+                tree_constraint = ArborescenceConstraint(
+                    preds[tree[0]], preds[tree[1]])
             else:
                 raise MLNParseException(
                     "Tree constraint %s is not correct", tree
@@ -221,6 +225,10 @@ class MLNConstraintVisitor(MLNVisitor):
     def visit_tree(self, node, visited_children):
         _, pred, _ = visited_children
         return pred
+
+    def visit_arborescence(self, node, visited_children):
+        _, pred, _, _, root_pred, _ = visited_children
+        return pred, root_pred
 
     def visit_ccs(self, node, visited_children):
         ccs = self._visit_list(*visited_children)

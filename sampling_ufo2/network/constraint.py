@@ -7,7 +7,7 @@ from logzero import logger
 from itertools import product
 from copy import deepcopy
 
-from sampling_ufo2.fol.syntax import Pred, QuantifiedFormula
+from sampling_ufo2.fol.syntax import Pred, Const, QuantifiedFormula
 from sampling_ufo2.network.mln import MLN, ComplexMLN
 
 
@@ -27,6 +27,21 @@ class TreeConstraint(Constraint):
 
     def __str__(self):
         return "Tree({})".format(self.pred)
+
+
+class ArborescenceConstraint(Constraint):
+    def __init__(self, pred: Pred, root_pred: Pred):
+        """
+        Arborescence (directed tree) constraint
+
+        :param pred Pred: the relation that forms a arborescence
+        :param root Const: the constant that represents the root of the tree
+        """
+        self.pred = pred
+        self.root_pred = root_pred
+
+    def __str__(self):
+        return "DTree({}, {})".format(self.pred, self.root_pred)
 
 
 class CardinalityConstraint(Constraint):

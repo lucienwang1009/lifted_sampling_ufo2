@@ -50,7 +50,8 @@ class CellGraph(object):
         logger.debug('ground c c: %s', self.context.gnd_formula_cc)
         self.wmc_cc = WMC(self.context.gnd_formula_cc, self.get_weight)
 
-        if self.context.contain_tree_constraint():
+        if self.context.contain_tree_constraint() or \
+                self.context.contain_arborescence_constraint():
             logger.debug('Ground positive a b: %s',
                          self.context.gnd_formula_ab_p)
             logger.debug('Ground negative a b: %s',
@@ -59,6 +60,16 @@ class CellGraph(object):
                                 self.get_weight)
             self.wmc_ab_n = WMC(self.context.gnd_formula_ab_n,
                                 self.get_weight)
+            if self.context.contain_arborescence_constraint():
+                logger.debug('Ground positive b a: %s',
+                             self.context.gnd_formula_ba_p)
+                logger.debug('Ground or a b: %s',
+                             self.context.gnd_formula_ab_or)
+                self.wmc_ba_p = WMC(
+                    self.context.gnd_formula_ba_p, self.get_weight)
+                self.wmc_ab_or = WMC(
+                    self.context.gnd_formula_ab_or, self.get_weight
+                )
         # build cells
         self.cells = self._build_cells()
         # filter cells
@@ -149,7 +160,8 @@ class CellGraph(object):
                 # logger.debug('other evidence: %s', other_cell.get_evidences(b))
                 evidences = cell.get_evidences(a)
                 evidences = evidences.union(other_cell.get_evidences(b))
-                if self.context.contain_tree_constraint():
+                if self.context.contain_tree_constraint() or \
+                        self.context.contain_arborescence_constraint():
                     edge_samplers = (
                         WMCSampler(self.wmc_ab_p, evidences),
                         WMCSampler(self.wmc_ab_n, evidences)
@@ -158,6 +170,15 @@ class CellGraph(object):
                         self.wmc_ab_p.wmc(evidences),
                         self.wmc_ab_n.wmc(evidences)
                     )
+                    if self.context.contain_arborescence_constraint():
+                        edge_samplers += (
+                            WMCSampler(self.wmc_ba_p, evidences),
+                            WMCSampler(self.wmc_ab_or, evidences)
+                        )
+                        edge_weights += (
+                            self.wmc_ba_p.wmc(evidences),
+                            self.wmc_ab_or.wmc(evidences)
+                        )
                     samplers[frozenset((cell, other_cell))] = edge_samplers
                     weights[frozenset((cell, other_cell))] = edge_weights
                 else:

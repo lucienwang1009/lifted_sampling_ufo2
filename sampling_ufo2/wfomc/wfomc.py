@@ -7,11 +7,13 @@ import logzero
 from logzero import logger
 from typing import Tuple, List
 from collections import namedtuple
+from itertools import product
 
-from sampling_ufo2.utils import MultinomialCoefficients, tree_sum
+from sampling_ufo2.utils import MultinomialCoefficients, tree_sum, ArborescenceSumContext
 from sampling_ufo2.cell_graph import CellGraph, Cell
 from sampling_ufo2.context import Context
 from sampling_ufo2.parser import parse_mln_constraint
+from sampling_ufo2.network.constraint import ArborescenceConstraint
 
 
 ConfigWeight = namedtuple(
@@ -31,6 +33,17 @@ def assign_cell(cell_graph: CellGraph, partition: Tuple[int]) -> Tuple[List[Cell
 
 
 def get_config_weight(context: Context, cell_graph: CellGraph, partition: Tuple[int]) -> np.ndarray:
+    # exact one root element for arborescence
+    if context.contain_arborescence_constraint():
+        n_roots = 0
+        for idx, cell in enumerate(cell_graph.cells):
+            if cell.is_positive(context.tree_constraint.root_pred):
+                n_roots += partition[idx]
+        if n_roots != 1:
+            return ConfigWeight(
+                np.array(0.0, dtype=context.dtype), None, None
+            )
+
     domain_size = len(context.domain)
     if context.contain_tree_constraint():
         cell_assignment, w = assign_cell(cell_graph, partition)
@@ -59,6 +72,57 @@ def get_config_weight(context: Context, cell_graph: CellGraph, partition: Tuple[
         logger.debug('tree sum:%s, inherent_weight: %s, r:%s',
                      ts, w, r)
         res = ts * w * r
+        return ConfigWeight(
+            res, A, f
+        )
+    elif context.contain_arborescence_constraint():
+        cell_assignment, w = assign_cell(cell_graph, partition)
+        tree_constraint: ArborescenceConstraint = context.tree_constraint
+        root = None
+        for i in range(domain_size):
+            if cell_assignment[i].is_positive(tree_constraint.root_pred):
+                root = i
+        # assign each element a cell type
+        A = np.zeros([domain_size, domain_size, context.weight_dims],
+                     dtype=context.dtype)
+        f = []
+        F = []
+        r = 1
+        for i in range(domain_size):
+            for j in range(domain_size):
+                if i >= j:
+                    continue
+                # WMC(f(a,b) ^ R(a,b) ^ !R(b,a)), WMC(f(a,b) ^ !R(a,b) ^ !R(b,a)), WMC(f(a,b) ^ !R(a,b) ^ R(b,a))
+                ab_p, neg, ba_p, ab_or = cell_graph.get_edge_weight(frozenset((
+                    cell_assignment[i], cell_assignment[j]
+                )))
+                if np.any(neg == 0):
+                    if np.any(ab_or == 0):
+                        continue
+                    if np.any(ba_p == 0):
+                        f.append((i, j))
+                    elif np.any(ab_p == 0):
+                        f.append((j, i))
+                    else:
+                        F.append([(i, j), (j, i)])
+                    # r *= ab_or
+                    A[i, j, :] = ab_p  # / ab_or
+                    A[j, i, :] = ba_p  # / ab_or
+                else:
+                    r *= neg
+                    A[i, j, :] = ab_p / neg
+                    A[j, i, :] = ba_p / neg
+        logger.info('Undirected contraction edges: %s', F)
+        ts = 0
+        if F:
+            for i in product(*F):
+                tmp_f = f + list(i)
+                ts += ArborescenceSumContext(A, root, tmp_f).tree_sum()
+        else:
+            ts = ArborescenceSumContext(A, root, f).tree_sum()
+        res = ts * w * r
+        logger.debug('partition: %s, tree sum:%s, inherent_weight: %s, r:%s, res: %s',
+                     partition, ts, w, r, res)
         return ConfigWeight(
             res, A, f
         )

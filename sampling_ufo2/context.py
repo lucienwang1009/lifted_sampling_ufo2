@@ -4,7 +4,7 @@ from logzero import logger
 from typing import Dict, Tuple, Any, Set, Callable
 
 from sampling_ufo2.network.mln import MLN
-from sampling_ufo2.network.constraint import TreeConstraint, CardinalityConstraint
+from sampling_ufo2.network.constraint import TreeConstraint, ArborescenceConstraint, CardinalityConstraint
 from sampling_ufo2.fol.syntax import Atom, Pred, CNF, Substitution, Const, Lit, Var, AndCNF
 from sampling_ufo2.fol.syntax import a, b, c
 from sampling_ufo2.fol.utils import new_predicate
@@ -67,13 +67,42 @@ class Context(object):
                     gnd_formula_ab1, gnd_formula_ab2, CNF.from_lit(
                         tree_lit.negate())
                 )
+            elif self.contain_arborescence_constraint():
+                tree_lit1 = Lit(self.tree_constraint.pred(a, b))
+                tree_lit2 = Lit(self.tree_constraint.pred(a, b), False)
+                tree_lit3 = Lit(self.tree_constraint.pred(b, a))
+                tree_lit4 = Lit(self.tree_constraint.pred(b, a), False)
+                # WMC(\phi(a,b) ^ R(a, b) ^ !R(b, a))
+                self.gnd_formula_ab_p: CNF = AndCNF(
+                    gnd_formula_ab1, gnd_formula_ab2, CNF.from_lit(
+                        tree_lit1), CNF.from_lit(tree_lit4)
+                )
+                # WMC(\phi(a,b) ^ !R(a, b) ^ !R(b, a))
+                self.gnd_formula_ab_n: CNF = AndCNF(
+                    gnd_formula_ab1, gnd_formula_ab2, CNF.from_lit(
+                        tree_lit2), CNF.from_lit(tree_lit4)
+                )
+                # WMC(\phi(a,b) ^ !R(a, b) ^ R(b, a))
+                self.gnd_formula_ba_p: CNF = AndCNF(
+                    gnd_formula_ab1, gnd_formula_ab2, CNF.from_lit(
+                        tree_lit3), CNF.from_lit(tree_lit2)
+                )
+                # WMC(\phi(a,b) ^ (R(a, b) v R(b, a)))
+                self.gnd_formula_ab_or: CNF = AndCNF(
+                    gnd_formula_ab1, gnd_formula_ab2, CNF.from_lit(
+                        tree_lit1).Or(CNF.from_lit(tree_lit3))
+                )
             else:
                 raise RuntimeError(
                     "Unknown tree constraint: %s", type(self.tree_constraint)
                 )
 
     def contain_tree_constraint(self) -> bool:
-        return isinstance(self.tree_constraint, TreeConstraint)
+        return not isinstance(self.tree_constraint, ArborescenceConstraint) \
+            and isinstance(self.tree_constraint, TreeConstraint)
+
+    def contain_arborescence_constraint(self) -> bool:
+        return isinstance(self.tree_constraint, ArborescenceConstraint)
 
     def contain_cardinality_constraint(self) -> bool:
         return isinstance(self.cardinality_constraint, CardinalityConstraint)

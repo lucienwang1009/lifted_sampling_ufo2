@@ -163,6 +163,9 @@ class Sampler(object):
                                 r_hat.append(gamma_dist)
                                 connect.append(c)
                     else:
+                        dist = []
+                        raw_atoms = []
+                        r_hat = []
                         for gamma_idx, gamma_dist in enumerate(sampler.dist):
                             atoms = sampler.decode(sampler.codes[gamma_idx])
                             if self.context.contain_cardinality_constraint():
@@ -237,7 +240,6 @@ class Sampler(object):
         weights = []
         multinomial_coefficients = MultinomialCoefficients(
             self.domain_size, self.n_cells)
-
         for partition in multinomial_coefficients:
             coef = multinomial_coefficients.coef(partition)
             config_weight = get_config_weight(
