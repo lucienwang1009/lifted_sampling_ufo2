@@ -80,3 +80,5 @@ $ python sampling_ufo2/sampler.py -h
 ## References
 
 Yuanhong Wang, Timothy van Bremen, Yuyi Wang and Ondřej Kuželka. Domain-Lifted Sampling for Universal Two-Variable Logic and Extensions. AAAI 2022
+
+This repo implements an improved algorithm, incorporating efficient caching, see [algorithm discription](./algorithm.pdf).
