@@ -303,8 +303,10 @@ if __name__ == '__main__':
         logger.info('elapsed time for initializing sampler: %s', t.elapsed)
         samples = sampler.sample(args.n_samples)
         logger.info('total time for sampling: %s', total_t.elapsed)
-    with open(os.path.join(args.output_dir, 'samples.pkl'), 'wb') as f:
+    save_file = os.path.join(args.output_dir, 'samples.pkl')
+    with open(save_file, 'wb') as f:
         pickle.dump(samples, f)
+    logger.info('Samples are saved in %s', save_file)
     logger.debug('Samples:')
     for s in samples:
         logger.debug(sorted(str(i) for i in s))
