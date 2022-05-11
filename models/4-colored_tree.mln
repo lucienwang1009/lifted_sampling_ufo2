@@ -1,0 +1,24 @@
+//
+// P(friends(Guy,Nima))  = 0.4580488556024473
+// P(smokes(Guy))        = 0.49999999999999906
+// P(friends(Nima,Nima)) = 0.49999999999999906
+//
+
+vertex = 10
+E(vertex, vertex)
+a(vertex)
+b(vertex)
+c(vertex)
+d(vertex)
+
+!E(x,x).
+E(x,y) => E(y,x).
+a(x) v b(x) v c(x) v d(x).
+!a(x) v !b(x).
+!a(x) v !c(x).
+!a(x) v !d(x).
+!b(x) v !c(x).
+!b(x) v !d(x).
+!c(x) v !d(x).
+E(x,y) => (!(a(x) ^ a(y)) ^ !(b(x) ^ b(y)) ^ !(c(x) ^ c(y)) ^ !(d(x) ^ d(y))).
+TREE[E]

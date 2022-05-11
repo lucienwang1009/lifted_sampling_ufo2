@@ -1,0 +1,18 @@
+//
+// P(friends(Guy,Nima))  = 0.4580488556024473
+// P(smokes(Guy))        = 0.49999999999999906
+// P(friends(Nima,Nima)) = 0.49999999999999906
+//
+
+vertex = 8
+E(vertex, vertex)
+a(vertex)
+b(vertex)
+
+!E(x,x).
+!E(x,y) v E(y,x).
+a(x) v b(x).
+!a(x) v !b(x).
+(!E(x,y) v !a(x) v !a(y)) ^ (!E(x,y) v !b(x) v !b(y)).
+Tree[E]
+|E| = 14
