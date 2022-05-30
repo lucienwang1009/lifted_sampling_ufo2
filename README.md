@@ -5,9 +5,11 @@ This tool is for randomly generation of instances or combinatorical structures f
 
 
 ## Input format
-	- Markov Logic Network (MLN) format, also see [Pracmln](http://www.pracmln.org/mln_syntax.html)
-	- Tree constraint -- `Tree[R]`
-	- Cardinality constraint -- `|P| = k`
+
+- Markov Logic Network (MLN) format, also see [Pracmln](http://www.pracmln.org/mln_syntax.html)
+- Tree constraint: `Tree[R]`
+- Cardinality constraint: `|P| = k`
+
    
 ### Example input file
 
@@ -81,4 +83,4 @@ $ python sampling_ufo2/sampler.py -h
 
 Yuanhong Wang, Timothy van Bremen, Yuyi Wang and Ondřej Kuželka. Domain-Lifted Sampling for Universal Two-Variable Logic and Extensions. AAAI 2022
 
-This repo implements an improved algorithm, incorporating efficient caching, see [algorithm discription](./algorithm.pdf).
+Compared with the original algorithm in the paper, this repo implements a faster version, incorporating efficient caching, see [algorithm discription](./algorithm.pdf) for details.
