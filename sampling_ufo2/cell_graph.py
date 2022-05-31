@@ -119,7 +119,8 @@ class CellGraph(object):
         weight2 = self.wmc_ab.wmc(evidences2)
         weight3 = self.wmc_cc.wmc(evidences3)
         if any(np.all(weight == 0) for weight in [
-            weight1, weight2, weight3
+            # weight1, weight2, weight3
+            weight3
         ]):
             return False
         return True
