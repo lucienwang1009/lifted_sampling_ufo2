@@ -33,10 +33,11 @@ class MLN(object):
             for pred in preds:
                 if pred not in self.predicate_definition:
                     raise RuntimeError(
-                        "Use %s without definition",
+                        "Use the predicate %s without definition",
                         pred
                     )
-            # if defined predicated is not in formulas, add it with weight 0.0
+            # if defined predicated is not in formulas,
+            # add it with weight 0.0, i.e., exp(0) = 1
             for pred in self.predicate_definition:
                 if pred not in preds:
                     vars = pad_vars(self.vars(), pred.arity)

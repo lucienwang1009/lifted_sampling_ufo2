@@ -1,15 +1,14 @@
 import random
 import numpy as np
+import functools
 
 from typing import Dict, FrozenSet, List, Tuple, Callable
 from itertools import product
 from nnf import Var, NNF
-from logzero import logger
 from nnf.amc import eval
 
 from sampling_ufo2.fol.utils import to_nnf, to_nnf_var
 from sampling_ufo2.fol.syntax import CNF, Atom, Lit, Pred
-from sampling_ufo2.context import Context
 
 
 def np_wmc(node: NNF, weights: Callable[[Var], np.ndarray]) -> np.ndarray:
@@ -26,30 +25,46 @@ def np_wmc(node: NNF, weights: Callable[[Var], np.ndarray]) -> np.ndarray:
 
 
 class WMC(object):
-    def __init__(self, gnd_formula: CNF, get_weight: Callable[[Pred], np.ndarray]):
+    def __init__(self, gnd_formula: CNF, get_weight: Callable[[Pred], np.ndarray], ignore_cell_weight: bool = True):
+        """
+        Compute WMC of gnd_formula
+
+        :param gnd_formula CNF: gounding formula in the form of CNF
+        :param get_weight Callable[[Pred], np.ndarray]: weighting function
+        :param ignore_cell_weight bool: whether set the weight of unary and reflexive binary atom to 1
+        """
         self.gnd_formula: CNF = gnd_formula
         self.get_weight: Callable[Pred, np.ndarray] = get_weight
         self.nnf: NNF = to_nnf(gnd_formula)
+        self.ignore_cell_weight = ignore_cell_weight
         self.var_weights: Dict[Var, np.ndarray] = self._get_var_weights()
 
     def _get_var_weights(self):
         weights = dict()
         for atom in self.gnd_formula.atoms():
             var = to_nnf_var(Lit(atom))
-            weights[var], weights[var.negate(
-            )] = self.get_weight(atom.pred)
+            if self.ignore_cell_weight and \
+                    (len(atom.args) == 1 or all(arg == atom.args[0] for arg in atom.args)):
+                weights[var], weights[var.negate()] = (1, 1)
+            else:
+                weights[var], weights[var.negate()] = self.get_weight(atom.pred)
         return weights
 
-    def wmc(self, evidences: FrozenSet[Lit] = None, evidence_weight: bool = False) -> np.ndarray:
+    @functools.lru_cache(maxsize=None)
+    def wmc(self, evidences: FrozenSet[Lit] = None) -> np.ndarray:
+        """
+        Compute WMC w.r.t. evidences
+
+        :param evidences FrozenSet[Lit]:
+        :param evidence_weight bool: whether multiply the weight of evidence
+        :rtype np.ndarray: WMC value
+        """
         evidences_vars = set(
             to_nnf_var(lit) for lit in evidences
         )
 
         def weights_fn(var):
             if var in evidences_vars:
-                # NOTE: avoid duplicate multiplications
-                if not evidence_weight:
-                    return 1
                 return self.var_weights[var]
             elif var.negate() in evidences_vars:
                 return 0
@@ -92,7 +107,7 @@ class WMCSampler(object):
                 if not flag:
                     lit = lit.negate()
                 evidences_tmp.add(lit)
-            weight = self.wmc.wmc(evidences_tmp, evidence_weight=True)
+            weight = self.wmc.wmc(frozenset(evidences_tmp))
             if np.all(weight != 0):
                 dist.append(weight)
                 codes.append(code)

@@ -33,8 +33,9 @@ formularules = """
 """ + atomrules
 
 domainrules = """
-    domain = sym ws? "=" ws? (domain_spec / num)?
+    domain = sym ws? "=" ws? (domain_spec / domain_slice / num)?
     domain_spec = "{" sym (sep sym)* "}"
+    domain_slice = "{" num sep "..." sep num "}"
 """
 
 constraint_rules = """

@@ -1,0 +1,7 @@
+domain = {1,...,8}
+
+func(domain, domain)
+
+!func(x,x).
+Exist y func(x,y).
+|func| = 8

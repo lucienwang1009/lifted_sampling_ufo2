@@ -2,18 +2,17 @@ from __future__ import annotations
 
 import os
 
-from typing import List, Tuple, Dict, FrozenSet
-from itertools import product
+from collections import defaultdict
+from typing import FrozenSet
 from nnf import Or, And, dsharp, NNF
 from nnf import Var as nnf_var
 
-from .syntax import Atom, Lit, DisjunctiveClause, ConjunctiveClause, Pred, Var, CNF
+from .syntax import CNF, Lit, Pred, Var, Const, Substitution
 from .syntax import x, y, z
-from .backend import SympyBackend as backend
 
 
 auxiliary_pred_name = 'aux'
-n_auxiliary_preds = 0
+cnt_predicates = defaultdict(lambda: 0)
 
 dsharp_exe = os.path.join(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
@@ -23,9 +22,9 @@ dsharp_exe = os.path.join(
 
 
 def new_predicate(arity: int, name: str = auxiliary_pred_name) -> Pred:
-    global n_auxiliary_preds
-    p = Pred('{}{}'.format(name, n_auxiliary_preds), arity)
-    n_auxiliary_preds += 1
+    global cnt_predicates
+    p = Pred('{}{}'.format(name, cnt_predicates[name]), arity)
+    cnt_predicates[name] += 1
     return p
 
 
@@ -57,3 +56,21 @@ def pad_vars(vars: FrozenSet[Var], arity: int) -> FrozenSet[Var]:
         ret_vars.add(default_vars[idx])
         idx += 1
     return frozenset(list(ret_vars)[:arity])
+
+
+def ground_FO2(sentence: CNF, c1: Const, c2: Const = None) -> CNF:
+    variables = sentence.vars()
+    if len(variables) > 2 or len(variables) < 1:
+        raise RuntimeError(
+            "Can only ground out FO2"
+        )
+    if len(variables) == 1:
+        constants = [c1]
+    else:
+        if c2 is not None:
+            constants = [c1, c2]
+        else:
+            constants = [c1, c1]
+    substitution = Substitution(zip(variables, constants))
+    gnd_formula = sentence.substitute(substitution)
+    return gnd_formula
