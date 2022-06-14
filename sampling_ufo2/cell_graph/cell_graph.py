@@ -3,62 +3,15 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from typing import Callable, Dict, FrozenSet, List, Set, Tuple
-from dataclasses import dataclass, field
+from typing import Callable, Dict, FrozenSet, List, Tuple
 from logzero import logger
 from itertools import product
 
-from sampling_ufo2.wfomc.wmc import WMC, WMCSampler
-from sampling_ufo2.fol.syntax import Lit, Pred, Term, CNF, x, a, b, c, tautology, AndCNF
+from sampling_ufo2.wfomc.wmc import WMC
+from sampling_ufo2.fol.syntax import AndCNF, CNF, Pred, a, b, c, tautology, Lit
 from sampling_ufo2.fol.utils import ground_FO2
 from sampling_ufo2.utils import format_np_complex
-
-
-@dataclass(frozen=True)
-class Cell(object):
-    """
-    In other words, the Unary types
-    """
-    code: Tuple[bool] = field(hash=False, compare=False)
-    preds: Tuple[Pred] = field(hash=False, compare=False)
-    # for hashing
-    _identifier: FrozenSet[Tuple[Pred, bool]] = field(
-        default=None, repr=False, init=False, hash=True, compare=True)
-
-    def __post_init__(self):
-        object.__setattr__(self, '_identifier',
-                           frozenset(zip(self.preds, self.code)))
-
-    def get_evidences(self, term: Term) -> FrozenSet[Lit]:
-        evidences = set()
-        for i, p in enumerate(self.preds):
-            atom = p(*([term] * p.arity))
-            if (self.code[i]):
-                evidences.add(Lit(atom))
-            else:
-                evidences.add(Lit(atom, False))
-        return frozenset(evidences)
-
-    def is_positive(self, pred: Pred) -> bool:
-        return self.code[self.preds.index(pred)]
-
-    def negate(self, pred: Pred) -> Cell:
-        idx = self.preds.index(pred)
-        new_code = list(self.code)
-        new_code[idx] = not new_code[idx]
-        return Cell(tuple(new_code), self.preds)
-
-    def drop_pred(self, pred: Pred) -> Cell:
-        new_code, new_preds = zip(
-            *[(c, p) for c, p in zip(self.code, self.preds) if p != pred])
-        return Cell(tuple(new_code), tuple(new_preds))
-
-    def __str__(self):
-        evidences: Set[Lit] = self.get_evidences(x)
-        return '^'.join(str(lit) for lit in evidences)
-
-    def __repr__(self):
-        return self.__str__()
+from .components import Cell, BtypeTable
 
 
 class CellGraph(object):
@@ -66,7 +19,7 @@ class CellGraph(object):
     Cell graph that handles cells (U-types) and the wmc between them.
     """
 
-    def __init__(self, sentence: CNF, get_weight: Callable[[Pred], Tuple[np.ndarray]], conditional_formulas: List[CNF] = None):
+    def __init__(self, sentence: CNF, get_weight: Callable[[Pred], Tuple[np.ndarray]]):
         """
         Cell graph that handles cells (U-types) and the WMC between them
 
@@ -90,6 +43,9 @@ class CellGraph(object):
             tautology: WMC(self.gnd_formula_ab, self.get_weight)
         }
         self.cc_wmc = WMC(self.gnd_formula_cc, self.get_weight)
+        self.ab_wmc = WMC(
+            self.gnd_formula_ab, self.get_weight
+        )
         # build cells
         self.cells: List[Cell] = self._build_cells()
         # filter cells
@@ -99,22 +55,10 @@ class CellGraph(object):
         logger.info('after filtering, the number of cells: %s',
                     len(self.cells))
 
-        if conditional_formulas:
-            for conditional_formula in conditional_formulas:
-                self.ab_wmcs[conditional_formula] = WMC(
-                    AndCNF(
-                        self.gnd_formula_ab, conditional_formula
-                    ),
-                    self.get_weight
-                )
-
         self.cell_weights: Dict[Cell, np.ndarray]
-        self.edge_weights: Dict[FrozenSet[Cell],
-                                Dict[CNF, np.ndarray]]
-        self.samplers: Dict[FrozenSet[Cell],
-                            Dict[CNF, WMCSampler]]
+        self.edge_tables: Dict[Tuple[Cell, Cell], BtypeTable]
         self.cell_weights = self._compute_cell_weights()
-        self.edge_weights, self.samplers = self._compute_edge_weight()
+        self.edge_tables = self._build_edge_tables()
 
     def show(self):
         logger.info(str(self))
@@ -168,15 +112,26 @@ class CellGraph(object):
             return 0
         return self.cell_weights.get(cell)
 
-    def get_edge_weight(self, cells: FrozenSet[Cell], conditional_formula: CNF = None) -> np.ndarray:
-        if cells not in self.edge_weights:
+    def _check_existence(self, cells: Tuple[Cell, Cell]):
+        if cells not in self.edge_tables:
             raise RuntimeError(
-                "Cells (%s) not found", cells
+                "Cells (%s) not found, note that the order of cells matters!", cells
             )
-            return 0
-        if conditional_formula is None:
-            conditional_formula = tautology
-        return self.edge_weights.get(cells).get(conditional_formula)
+
+    def get_edge_weight(self, cells: Tuple[Cell, Cell],
+                        evidences: FrozenSet[Lit] = None) -> np.ndarray:
+        self._check_existence(cells)
+        return self.edge_tables.get(cells).get_weight(evidences)
+
+    def satisfiable(self, cells: Tuple[Cell, Cell],
+                    evidences: FrozenSet[Lit] = None) -> bool:
+        self._check_existence(cells)
+        return self.edge_tables.get(cells).satisfiable(evidences)
+
+    def get_btypes(self, cells: Tuple[Cell, Cell],
+                   evidences: FrozenSet[Lit] = None) -> Tuple[FrozenSet[Lit], np.ndarray]:
+        self._check_existence(cells)
+        return self.edge_tables.get(cells).get_btypes(evidences)
 
     def _build_cells(self):
         cells = []
@@ -190,11 +145,16 @@ class CellGraph(object):
         Any cell with zero w and zero wmc with all assignments for other variables
         should be removed
         '''
-        evidences = cell.get_evidences(c)
-        weight = self.cc_wmc.wmc(evidences)
-        if np.all(weight == 0):
-            return False
-        return True
+        evidences_c = cell.get_evidences(c)
+        evidences_a = cell.get_evidences(a)
+        evidences_b = cell.get_evidences(b)
+        if all([
+            self.cc_wmc.satisfiable(evidences_c),
+            self.ab_wmc.satisfiable(evidences_a),
+            self.ab_wmc.satisfiable(evidences_b)
+        ]):
+            return True
+        return False
 
     def _compute_cell_weights(self):
         weights = dict()
@@ -212,24 +172,13 @@ class CellGraph(object):
             weights[cell] = weight
         return weights
 
-    def _compute_edge_weight(self):
-        weights = dict()
-        samplers = dict()
+    def _build_edge_tables(self):
+        tables = dict()
         for i, cell in enumerate(self.cells):
             for j, other_cell in enumerate(self.cells):
-                if i > j:
-                    continue
-                edge_weights = dict()
-                edge_samplers = dict()
-                evidences = cell.get_evidences(a)
-                evidences = evidences.union(other_cell.get_evidences(b))
-                for conditional_formula, wmc in self.ab_wmcs.items():
-                    wmc_val = wmc.wmc(evidences)
-                    # NOTE: Avoid modifying the weight
-                    wmc_val.flags.writeable = False
-                    edge_weights[conditional_formula] = wmc_val
-                    edge_samplers[conditional_formula] = WMCSampler(
-                        wmc, evidences)
-                samplers[frozenset((cell, other_cell))] = edge_samplers
-                weights[frozenset((cell, other_cell))] = edge_weights
-        return weights, samplers
+                # if i > j:
+                #     continue
+                tables[(cell, other_cell)] = BtypeTable(
+                    self.ab_wmc, cell, other_cell
+                )
+        return tables

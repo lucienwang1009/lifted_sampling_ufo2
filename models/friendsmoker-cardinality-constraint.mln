@@ -4,7 +4,7 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-person = {C1, C2, C3}
+person = {1,...,5}
 //, Wannes, Jesse, Luc, 1, 2, 3, 4, 5, 6}
 friends(person,person)
 smokes(person)
@@ -12,5 +12,5 @@ smokes(person)
 !friends(x,y) v friends(y,x).
 0.6 smokes(x)
 1 !friends(x,y) v !smokes(x) v smokes(y)
-|friends| = 2
+|friends| = 8
 // |smokes(x)| == 1 and |friends(x,y) ^ smokes(x) => smokes(y)| == 2

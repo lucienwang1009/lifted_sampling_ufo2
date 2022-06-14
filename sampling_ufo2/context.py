@@ -1,7 +1,7 @@
 import numpy as np
 
 from logzero import logger
-from typing import Callable, Dict, Set, Tuple, List
+from typing import Callable, Dict, Set, Tuple, List, FrozenSet
 from dataclasses import dataclass, field
 from itertools import product
 
@@ -43,26 +43,26 @@ class ExtBType(object):
             ))
         object.__setattr__(self, 'atoms', tuple(atoms))
 
-    def get_conditional_formula(self) -> CNF:
+    def get_evidences(self) -> FrozenSet[Lit]:
         evidences = set()
         for ab, ba, (atom_ab, atom_ba) in zip(self.code_ab, self.code_ba, self.atoms):
             if (ab):
-                evidences.add(CNF.from_lit(Lit(atom_ab)))
+                evidences.add(Lit(atom_ab))
             else:
-                evidences.add(CNF.from_lit(Lit(atom_ab, False)))
+                evidences.add(Lit(atom_ab, False))
             if (ba):
-                evidences.add(CNF.from_lit(Lit(atom_ba)))
+                evidences.add(Lit(atom_ba))
             else:
-                evidences.add(CNF.from_lit(Lit(atom_ba, False)))
-        return AndCNF(*evidences)
+                evidences.add(Lit(atom_ba, False))
+        return frozenset(evidences)
 
     def is_positive(self, pred: Pred) -> bool:
         idx = self.preds.index(pred)
         return self.code_ab[idx], self.code_ba[idx]
 
     def __str__(self):
-        conditional_formula = self.get_conditional_formula()
-        return str(conditional_formula)
+        evidences = self.get_evidences()
+        return str(evidences)
 
     def __repr__(self):
         return str(self)
@@ -116,39 +116,31 @@ class Context(object):
         for pred, w in self.weights.items():
             logger.debug('%s: %s', pred, w)
 
+        logger.info('Build cell graph')
+        self.cell_graph = CellGraph(
+            self.sentence, self.get_weight_fn()
+        )
+
         # deal with tree axiom
-        self.conditional_formulas: List[CNF] = list()
         if self.tree_constraint is not None:
             if self.contain_tree_constraint():
                 tree_lit = Lit(self.tree_constraint.pred(a, b))
-                self.tree_condition_ab_p: CNF = CNF.from_lit(tree_lit)
-                self.tree_condition_ab_n: CNF = CNF.from_lit(tree_lit.negate())
-                self.conditional_formulas.extend([
-                    self.tree_condition_ab_p,
-                    self.tree_condition_ab_n
-                ])
+                self.tree_p_evidence = frozenset([tree_lit])
+                self.tree_n_evidence = frozenset([tree_lit.negate()])
             else:
                 raise RuntimeError(
                     "Unknown tree constraint: %s", type(self.tree_constraint)
                 )
 
+        # deal with existential quantifiers
         if self.contain_existential_quantifier():
             logger.info('skolemized sentence for WFOMC: %s',
                         self._skolemized_sentence)
             self.ext_btypes: List[ExtBType] = self._get_ext_btypes()
-            for ext_btype in self.ext_btypes:
-                self.conditional_formulas.append(
-                    ext_btype.get_conditional_formula()
-                )
-            logger.info('Build cell graph for skolemized sentence')
             self.skolem_cell_graph = CellGraph(
                 self._skolemized_sentence,
                 self.get_weight_fn(),
             )
-
-        logger.info('Build cell graph')
-        self.cell_graph = CellGraph(
-            self.sentence, self.get_weight_fn(), self.conditional_formulas)
 
     def _get_ext_btypes(self) -> List[ExtBType]:
         ext_btypes = list()
@@ -175,7 +167,7 @@ class Context(object):
             weights = self.weights
 
         def get_weight(pred: Pred) -> Tuple[np.ndarray]:
-            default = np.array([1.0], dtype=self.dtype)
+            default = np.array([1.0] * self.weight_dims, dtype=self.dtype)
             if pred in weights:
                 return weights[pred]
             return (default, default)
@@ -203,8 +195,8 @@ class Context(object):
                 skolemized_sentence.append(
                     CNF.from_atom(skolem_atom).Or(aux_cnf.Not())
                 )
-                self.weights[skolem_pred] = (np.array([1.0], dtype=self.dtype),
-                                             np.array([-1.0], dtype=self.dtype))
+                self.weights[skolem_pred] = (np.array([1.0] * self.weight_dims, dtype=self.dtype),
+                                             np.array([-1.0] * self.weight_dims, dtype=self.dtype))
 
                 uni_var = list(uni_vars)[0]
                 if uni_var == aux_atom.args[0]:
@@ -222,7 +214,7 @@ class Context(object):
                 else:
                     # set weight for aux predicate
                     self.weights[aux_pred] = (np.array(np.exp(weight), dtype=self.dtype),
-                                              np.array([1.0], dtype=self.dtype))
+                                              np.array([1.0] * self.weight_dims, dtype=self.dtype))
         self.sentence = AndCNF(*sentence)
         self._skolemized_sentence = AndCNF(
             *skolemized_sentence)

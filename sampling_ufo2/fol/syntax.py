@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 from dataclasses import dataclass, field
 from typing import FrozenSet, List, Tuple
 from collections import OrderedDict
@@ -38,6 +39,9 @@ class Pred:
             raise RuntimeError("Arity must be a natural number")
 
     def __call__(self, *args: Term):
+        # NOTE(hack): the callable obj cannot be the column of dataframe
+        if len(args) == 0 or not isinstance(args[0], (Var, Const)):
+            return self
         if self.arity != len(args):
             raise RuntimeError(
                 "Mismatching number of arguments and predicate %s: %s != %s", str(self), self.arity, len(args))

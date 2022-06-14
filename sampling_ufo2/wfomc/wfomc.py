@@ -5,21 +5,21 @@ import numpy as np
 import logzero
 
 from logzero import logger
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, FrozenSet
 from collections import namedtuple, defaultdict
 from itertools import product
 from copy import deepcopy
 
-from sampling_ufo2.fol.syntax import CNF
 from sampling_ufo2.utils import MultinomialCoefficients, multinomial, tree_sum
 from sampling_ufo2.cell_graph import CellGraph, Cell
 from sampling_ufo2.context import Context
 from sampling_ufo2.parser import parse_mln_constraint
 from sampling_ufo2.network import MLN, TreeConstraint, CardinalityConstraint
+from sampling_ufo2.fol.syntax import Lit
 
 
-ConfigResult = namedtuple(
-    'ConfigResult', ['weight', 'A', 'force_edges']
+WFOMCConfigResult = namedtuple(
+    'WFOMCConfigResult', ['weight', 'A', 'force_edges']
 )
 
 
@@ -42,48 +42,53 @@ class WFOMC(object):
         if logzero.loglevel == logging.DEBUG:
             self.context.cell_graph.show()
         # pre compute the pascal triangle for computing multinomial coefficient
-        MultinomialCoefficients.precompute(self.domain_size)
+        MultinomialCoefficients.setup(self.domain_size)
         if self.context.contain_existential_quantifier():
             # { (cell, n, k): wfomc }
-            self.existential_weights = self._precompute_ext_weight(
-                self.domain_size - 1)
+            self.existential_weights = self.precompute_ext_weight(
+                self.domain_size - 1
+            )
             logger.debug('Pre-computed weights for existential quantified formula: %s',
                          self.existential_weights)
 
-    def _assign_cell(self, cell_graph: CellGraph,
-                     partition: Dict[Cell, int]) -> Tuple[List[Cell], np.ndarray]:
+    def assign_cell(self, cell_graph: CellGraph,
+                    config: Dict[Cell, int]) -> Tuple[List[Cell], np.ndarray]:
         cell_assignment = list()
         w = 1
-        for cell, n in partition.items():
+        for cell, n in config.items():
             for j in range(n):
                 cell_assignment.append(cell)
                 w = w * cell_graph.get_cell_weight(cell)
         return cell_assignment, w
 
-    def _get_config_weight_standard(self, cell_graph: CellGraph, partition: Dict[Cell, int]) -> np.ndarray:
+    def _get_config_weight_standard(self, cell_graph: CellGraph, cell_config: Dict[Cell, int]) -> np.ndarray:
         res = 1
-        for i, cell_i in enumerate(partition):
-            n_i = partition[cell_i]
+        for i, (cell_i, n_i) in enumerate(cell_config.items()):
             if n_i == 0:
                 continue
             res = res * np.power(
                 cell_graph.get_cell_weight(cell_i), n_i
             )
-            res = res * np.power(cell_graph.get_edge_weight(
-                frozenset((cell_i, cell_i))
-            ), n_i * (n_i - 1) / 2)
-            for j, cell_j in enumerate(partition):
+            res = res * np.power(
+                cell_graph.get_edge_weight(
+                    (cell_i, cell_i)
+                ),
+                n_i * (n_i - 1) / 2
+            )
+            for j, (cell_j, n_j) in enumerate(cell_config.items()):
                 if j <= i:
                     continue
-                n_j = partition[cell_j]
                 if n_j == 0:
                     continue
-                res = res * np.power(cell_graph.get_edge_weight(
-                    frozenset((cell_i, cell_j))
-                ), n_i * n_j)
+                res = res * np.power(
+                    cell_graph.get_edge_weight(
+                        (cell_i, cell_j)
+                    ),
+                    n_i * n_j
+                )
         return res
 
-    def _precompute_ext_weight(self, domain_size):
+    def precompute_ext_weight(self, domain_size: int) -> Dict[FrozenSet[Tuple[Cell, int, int]], np.ndarray]:
         # { (cell, n, k): wfomc }
         existential_weights = defaultdict(lambda: 0)
         cell_graph = self.context.skolem_cell_graph
@@ -94,9 +99,8 @@ class WFOMC(object):
         skolem_pred = self.context.skolem_preds[0]
         for partition in multinomial(len(cells), domain_size):
             res = self._get_config_weight_standard(
-                cell_graph, dict(zip(cells, partition)))
-            # if self.context.contain_cardinality_constraint():
-            #     res = np.sum(np.dot(self.context.top_weights, res))
+                cell_graph, dict(zip(cells, partition))
+            )
             ext_n_k = defaultdict(lambda: [0, 0])
             for cell, n in zip(cells, partition):
                 cell_dropped_skolem = cell.drop_pred(skolem_pred)
@@ -105,7 +109,6 @@ class WFOMC(object):
                 else:
                     ext_n_k[cell_dropped_skolem][0] += n
                     ext_n_k[cell_dropped_skolem][1] += n
-            # logger.debug('%s: %s', ext_n_k, res)
             for ks in product(
                 *list(
                     range(k_min, n + 1) for n, k_min in ext_n_k.values()
@@ -118,14 +121,16 @@ class WFOMC(object):
                     )
                 existential_weights[
                     frozenset(
-                        zip(ext_n_k.keys(), [n for n, k in ext_n_k.values()], ks))
+                        zip(ext_n_k.keys(), [
+                            n for n, k in ext_n_k.values()], ks)
+                    )
                 ] += coef * res
         return existential_weights
 
-    def get_config_result_existential(self, partition: Dict[Cell, int]) -> ConfigResult:
+    def _get_config_result_existential(self, cell_config: Dict[Cell, int]) -> WFOMCConfigResult:
         ext_pred = self.context.ext_preds[0]
         cell_graph = self.context.cell_graph
-        cells, config = list(zip(*partition.items()))
+        cells, config = list(zip(*cell_config.items()))
         config = list(config)
         tseitin_pred = self.context.ext_preds[0]
         already_satisfied_ext = [cell.is_positive(
@@ -135,12 +140,12 @@ class WFOMC(object):
         # all elements are satisfied the existential quantified formula
         if all(already_satisfied_ext[i] for i, n in enumerate(config) if n != 0):
             # the weight is exactly that of sentence without existential quantifiers
-            logger.info('All cells satisfies existential quantifier')
-            res = self._get_config_weight_standard(cell_graph, partition)
-            return ConfigResult(res, None, None)
+            logger.debug('All cells satisfies existential quantifier')
+            res = self._get_config_weight_standard(cell_graph, cell_config)
+            return WFOMCConfigResult(res, None, None)
         # choose any element
         for i, satisfied in enumerate(already_satisfied_ext):
-            if config[i] > 0:  # and not satisfied:
+            if config[i] > 0 and not satisfied:
                 selected_idx = i
                 break
         selected_cell = cells[selected_idx]
@@ -148,18 +153,18 @@ class WFOMC(object):
         # domain recursion
         config[selected_idx] -= 1
         k[selected_idx] -= 1
-        edge_weights: Dict[CNF, Dict[CNF, np.ndarray]] = dict()
+        edge_weights: Dict[Cell, Dict[FrozenSet[Lit], np.ndarray]] = dict()
         # filter the impossible existential B-types
-        # NOTE: here the order of cells is required
+        # NOTE: here the order of cells matters
         for cell in cells:
+            cell_pair = (selected_cell, cell)
             weights = dict()
             for ext_btype in self.context.ext_btypes:
-                weight = cell_graph.get_edge_weight(
-                    frozenset((selected_cell, cell)),
-                    ext_btype.get_conditional_formula()
-                )
-                if np.all(weight != 0):
-                    weights[ext_btype] = weight
+                evidences = ext_btype.get_evidences()
+                if cell_graph.satisfiable(cell_pair, evidences):
+                    weights[ext_btype] = cell_graph.get_edge_weight(
+                        cell_pair, evidences
+                    )
             edge_weights[cell] = weights
         res = 0
         logger.debug('possible edges: %s', edge_weights)
@@ -184,35 +189,39 @@ class WFOMC(object):
                     W_e = W_e * np.power(edge_weight[ext_btype], num)
                     if ba_p:
                         reduced_k[idx] = max(reduced_k[idx] - num, 0)
-            if satisfied or already_satisfied_ext[selected_idx]:
+            if satisfied:  # or already_satisfied_ext[selected_idx]:
                 logger.debug('W_e: %s', W_e)
                 logger.debug('reduced wfomc for cells=%s, n=%s, k=%s: ',
                              cells, config, reduced_k)
                 reduced_wfomc = self.existential_weights[frozenset(
-                    zip(cells, config, reduced_k))]
+                    zip(cells, config, reduced_k)
+                )]
                 logger.debug('%s', reduced_wfomc)
                 res += (W_e * reduced_wfomc)
-        return ConfigResult(res, None, None)
+        return WFOMCConfigResult(res, None, None)
 
-    def get_config_result_tree(self, partition: Dict[Cell, int]) -> ConfigResult:
-        cell_assignment, w = self._assign_cell(
-            self.context.cell_graph, partition)
+    def _get_config_result_tree(self, cell_config: Dict[Cell, int]) -> WFOMCConfigResult:
+        cell_assignment, w = self.assign_cell(
+            self.context.cell_graph, cell_config
+        )
         # assign each element a cell type
-        A = np.zeros([self.domain_size, self.domain_size, self.context.weight_dims],
-                     dtype=self.context.dtype)
+        A = np.zeros(
+            [self.domain_size, self.domain_size, self.context.weight_dims],
+            dtype=self.context.dtype
+        )
         f = []
         r = 1
         for i in range(self.domain_size):
             for j in range(self.domain_size):
                 if i >= j:
                     continue
-                edge = frozenset((
-                    cell_assignment[i], cell_assignment[j],
-                ))
+                edge = (cell_assignment[i], cell_assignment[j])
                 ab_p = self.context.cell_graph.get_edge_weight(
-                    edge, self.context.tree_condition_ab_p)
+                    edge, self.context.tree_p_evidence
+                )
                 ab_n = self.context.cell_graph.get_edge_weight(
-                    edge, self.context.tree_condition_ab_n)
+                    edge, self.context.tree_n_evidence
+                )
                 if np.all(ab_n == 0):
                     # WMC(\phi \land \not R(a,b)) = 0
                     f.append((i, j))
@@ -226,19 +235,20 @@ class WFOMC(object):
         logger.debug('tree sum:%s, inherent_weight: %s, r:%s',
                      ts, w, r)
         res = ts * w * r
-        return ConfigResult(
+        return WFOMCConfigResult(
             res, A, f
         )
 
-    def get_config_result(self, partition: Dict[Cell, int]) -> ConfigResult:
+    def get_config_result(self, cell_config: Dict[Cell, int]) -> WFOMCConfigResult:
         if self.context.contain_existential_quantifier():
-            return self.get_config_result_existential(partition)
+            return self._get_config_result_existential(cell_config)
         elif self.context.contain_tree_constraint():
-            return self.get_config_result_tree(partition)
+            return self._get_config_result_tree(cell_config)
         else:
             res = self._get_config_weight_standard(
-                self.context.cell_graph, partition)
-            return ConfigResult(res, None, None)
+                self.context.cell_graph, cell_config
+            )
+            return WFOMCConfigResult(res, None, None)
 
     def compute(self):
         cells = self.context.cell_graph.get_cells()
@@ -247,27 +257,27 @@ class WFOMC(object):
         res = 0
         for partition in multinomial(n_cells, self.domain_size):
             coef = MultinomialCoefficients.coef(partition)
-            partition_dict = dict(zip(cells, partition))
+            cell_config = dict(zip(cells, partition))
             logger.debug(
                 '=' * 15 + ' Compute WFOMC for the partition %s ' + '=' * 15,
-                partition_dict
+                cell_config
             )
-            wfomc_partition = self.get_config_result(partition_dict).weight
+            config_weight = self.get_config_result(cell_config).weight
 
             if self.context.contain_cardinality_constraint():
-                wfomc_partition = coef * \
-                    np.sum(np.dot(self.context.top_weights, wfomc_partition))
-                res = res + wfomc_partition
+                config_weight = coef * \
+                    np.sum(np.dot(self.context.top_weights, config_weight))
+                res = res + config_weight
             else:
-                wfomc_partition = coef * np.sum(wfomc_partition)
-                res = res + wfomc_partition
+                config_weight = coef * np.sum(config_weight)
+                res = res + config_weight
 
             if self.context.contain_cardinality_constraint():
-                logger.debug('Weight of the partition: %s',
-                             wfomc_partition / self.context.reverse_dft_coef)
+                logger.debug('Weight of the config: %s',
+                             config_weight / self.context.reverse_dft_coef)
             else:
-                logger.debug('Weight of the partition: %s',
-                             wfomc_partition)
+                logger.debug('Weight of the config: %s',
+                             config_weight)
 
         if self.context.contain_cardinality_constraint():
             res = np.divide(res, self.context.reverse_dft_coef)
