@@ -8,8 +8,8 @@ from collections import OrderedDict
 
 from sampling_ufo2.parser.grammars import mln_with_constraint_rules
 from sampling_ufo2.fol.syntax import Var, Const, Atom, Pred, Lit, DisjunctiveClause, CNF, Exist, QuantifiedFormula
-from sampling_ufo2.network.mln import MLN
-from sampling_ufo2.network.constraint import TreeConstraint, CardinalityConstraint
+from sampling_ufo2.network import MLN
+from sampling_ufo2.network import TreeConstraint, CardinalityConstraint
 
 
 class MLNParseException(RuntimeError):
@@ -39,7 +39,12 @@ class MLNVisitor(NodeVisitor):
             weight, formula = weighted_formula
             weights.append(np.array(weight, dtype=np.float))
             formulas.append(formula)
-        return MLN(formulas, weights, self.domain, self.predicate_definition)
+        try:
+            mln = MLN(formulas, weights, self.domain,
+                      self.predicate_definition)
+        except RuntimeError as e:
+            raise MLNParseException(e)
+        return mln
 
     def visit_domain(self, node, visited_children):
         name, _, _, _, spec_or_num = visited_children
@@ -47,13 +52,20 @@ class MLNVisitor(NodeVisitor):
         if isinstance(spec_or_num, float):
             spec_or_num = set('C{}'.format(i)
                               for i in range(1, int(spec_or_num) + 1))
-        spec_or_num = set(map(lambda x: Const(x), spec_or_num))
+        spec_or_num = set(map(lambda x: Const(str(x)), spec_or_num))
         logger.debug('Domain spec: %s', spec_or_num)
         self.domain = spec_or_num
         self.domain_name = name
 
     def visit_domain_spec(self, node, visited_children):
         return set(self._visit_list(*visited_children[1:3]))
+
+    def visit_domain_slice(self, node, visited_children):
+        """
+        domain_slice = "{" num sep "..." sep num "}"
+        """
+        _, start, _, _, _, end, _ = visited_children
+        return set(range(int(start), int(end) + 1))
 
     def visit_weighted_formula(self, node, visited_children):
         weight, formula, hard = visited_children

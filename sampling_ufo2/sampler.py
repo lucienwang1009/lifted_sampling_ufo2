@@ -7,32 +7,30 @@ import logging
 import pickle
 
 from logzero import logger
-from typing import Tuple
 from contexttimer import Timer
 
 from sampling_ufo2.fol.syntax import a, b
-from sampling_ufo2.utils import MultinomialCoefficients, TreeSumContext
-from sampling_ufo2.cell_graph import CellGraph
-from sampling_ufo2.context import Context
+from sampling_ufo2.utils import MultinomialCoefficients, multinomial, TreeSumContext
 from sampling_ufo2.parser import parse_mln_constraint
-from sampling_ufo2.wfomc.wfomc import get_config_weight, assign_cell
+from sampling_ufo2.wfomc.wfomc import WFOMC
+from sampling_ufo2.network import MLN, TreeConstraint, CardinalityConstraint
 
 
 class Sampler(object):
-    def __init__(self, mln, tree_constraint, cardinality_constraint):
+    def __init__(self, mln: MLN, tree_constraint: TreeConstraint, cardinality_constraint: CardinalityConstraint):
         with Timer() as t:
-            self.context = Context(mln, tree_constraint,
-                                   cardinality_constraint)
-            self.cell_graph = CellGraph(self.context)
-            self.n_cells = len(self.cell_graph.cells)
-            self.cell_graph.show()
+            self.wfomc: WFOMC = WFOMC(
+                mln, tree_constraint, cardinality_constraint)
+            self.context = self.wfomc.context
+            if logzero.loglevel == logging.DEBUG:
+                self.context.cell_graph.show()
             self.domain_size = len(self.context.domain)
             # for tree axiom
             self.config, self.weights = self._get_config_weights()
             logger.info('Compute U-type configuration weight: %s', t.elapsed)
         wfomc = np.sum(self.weights)
         assert np.abs(wfomc) > 1e-5, 'Input sentence is unsatisfiable'
-        logger.info('wfomc:%s', wfomc)
+        logger.info('wfomc:%s', self.wfomc.compute())
         logger.debug(list(zip(self.config, self.weights)))
         assert len([i for i in self.weights if i < 0]) == 0, "negative weight"
         self.domain = list(self.context.domain)
@@ -235,21 +233,19 @@ class Sampler(object):
     def _get_config_weights(self):
         config = []
         weights = []
-        multinomial_coefficients = MultinomialCoefficients(
-            self.domain_size, self.n_cells)
 
-        for partition in multinomial_coefficients:
-            coef = multinomial_coefficients.coef(partition)
-            config_weight = get_config_weight(
-                self.context, self.cell_graph, partition).weight
+        cells = self.context.cell_graph.get_cells()
+        for partition in multinomial(len(cells), self.domain_size):
+            coef = MultinomialCoefficients.coef(partition)
+            config_result = self.wfomc.get_config_result(
+                dict(zip(cells, partition)))
             if self.context.contain_cardinality_constraint():
                 # NOTE: must be real numbers
                 config_weight = np.sum(
-                    np.dot(self.context.top_weights, config_weight))
+                    np.dot(self.context.top_weights, config_result.weight))
                 weight = config_weight.real if config_weight.real > 0 else 0
             else:
-                weight = np.sum(config_weight)
-
+                weight = np.sum(config_result.weight)
             config.append(partition)
             weights.append(coef * weight)
         return config, weights

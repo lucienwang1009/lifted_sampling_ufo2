@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Union, List, Set, Any, FrozenSet, Tuple
+from typing import FrozenSet, List, Tuple
 from collections import OrderedDict
-from logzero import logger
 
-from nnf import Var as nnf_Var
 from .backend import SympyBackend as backend
 
 
@@ -68,6 +66,9 @@ class Const(Term):
     Constant
     """
     name: str
+
+    def __str__(self) -> str:
+        return self.name
 
 
 @dataclass(frozen=True)
@@ -331,6 +332,14 @@ class QuantifiedFormula(Formula):
 
     def vars(self) -> FrozenSet[Var]:
         return self.cnf.vars()
+
+    def ext_uni_vars(self) -> Tuple[FrozenSet[Var], FrozenSet[Var]]:
+        all_vars = self.vars()
+        if self.exist is None:
+            ext_vars = None
+        else:
+            ext_vars = self.exist.quantified_vars
+        return (ext_vars, all_vars - ext_vars)
 
     def consts(self) -> FrozenSet[Const]:
         return self.cnf.consts()

@@ -4,14 +4,11 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-vertex = 10
+vertex = {1,...,3}
 E(vertex, vertex)
-a(vertex)
-b(vertex)
 
 !E(x,x).
 !E(x,y) v E(y,x).
-a(x) v b(x).
-!a(x) v !b(x).
-(!E(x,y) v !a(x) v !a(y)) ^ (!E(x,y) v !b(x) v !b(y)).
-Tree[E]
+// 1 E(x,y)
+Exist y E(x,y).
+|E| = 6
