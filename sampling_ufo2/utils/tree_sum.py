@@ -1,19 +1,22 @@
 import numpy as np
-from typing import Tuple, List, Union
+from typing import List, Tuple
+
+from sympy import Poly, Matrix
+from gmpy2 import mpq
 
 from logzero import logger
 from collections import defaultdict
 
 
-def tree_sum(w: np.ndarray, contracted_edges: List[Tuple[int]] = None) -> np.ndarray:
-    w = w + w.transpose(1, 0, 2)
+def tree_sum(w: np.ndarray, contracted_edges: List[Tuple[int]] = None) -> Poly:
+    w = w + w.transpose(1, 0)
     origin_w = w.copy()
     logger.debug('contraction edges: %s', contracted_edges)
     contraction_vertices = set()
     # map contracted vertex to the contracting vertex
     contraction_mapping = list(range(w.shape[0]))
     contraction_mapping_reverse = defaultdict(set)
-    prod_weight = np.ones([w.shape[2]], dtype=w.dtype)
+    prod_weight = mpq(1)
     if contracted_edges is not None:
         for edge in contracted_edges:
             v1 = contraction_mapping[edge[0]]
@@ -24,11 +27,11 @@ def tree_sum(w: np.ndarray, contracted_edges: List[Tuple[int]] = None) -> np.nda
                 logger.debug(
                     'Contract failed: adding {} leads to a cycle'.format(edge))
                 return 0
-            prod_weight *= origin_w[edge[0], edge[1], :]
-            w[v1, :, :] += w[v2, :, :]
-            w[:, v1, :] += w[:, v2, :]
+            prod_weight = prod_weight * origin_w[edge[0], edge[1]]
+            w[v1, :] += w[v2, :]
+            w[:, v1] += w[:, v2]
             contraction_vertices.add(v2)
-            w[range(w.shape[1]), range(w.shape[1]), :] = 0
+            w[range(w.shape[1]), range(w.shape[1])] = mpq(0)
             # map v2 to v1
             contraction_mapping[v2] = v1
             contraction_mapping_reverse[v1].add(v2)
@@ -38,14 +41,10 @@ def tree_sum(w: np.ndarray, contracted_edges: List[Tuple[int]] = None) -> np.nda
     remaining_vertices = set(range(w.shape[0]))
     remaining_vertices = list(remaining_vertices - contraction_vertices)
     logger.debug('Remaining vertices: %s', remaining_vertices)
-    w = w[remaining_vertices, :, :][:, remaining_vertices, :]
+    w = w[remaining_vertices, :][:, remaining_vertices]
     row_sum = np.sum(w, axis=0)
-    w = np.eye(row_sum.shape[0])[..., None] * row_sum[None, ...] - w
-    w = w[:-1, :-1, :].transpose(2, 0, 1)
-    # NOTE: np.linalg.det does not support complex256
-    if w.dtype == np.complex256:
-        w = w.astype(np.complex)
-    return prod_weight * np.linalg.det(w)
+    w = np.eye(row_sum.shape[0], dtype=int) * row_sum - w
+    return prod_weight * Matrix(w[:-1, :-1]).det()
 
 
 class TreeSumContext(object):

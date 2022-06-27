@@ -4,7 +4,7 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-vertex = 8
+vertex = 3
 E(vertex, vertex)
 a(vertex)
 b(vertex)
@@ -15,4 +15,4 @@ a(x) v b(x).
 !a(x) v !b(x).
 (!E(x,y) v !a(x) v !a(y)) ^ (!E(x,y) v !b(x) v !b(y)).
 Tree[E]
-|E| = 14
+|a| = 2

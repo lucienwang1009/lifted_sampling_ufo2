@@ -1,5 +1,5 @@
 baserules = """
-    num = ~r"[0-9.]+"
+    num = ~r"[\-0-9.]+"
     sym = ~r"[a-zA-Z][a-zA-Z0-9_]*"
     sep = ws? "," ws?
     ws = ~r"[ \\t\\n\\r]*"

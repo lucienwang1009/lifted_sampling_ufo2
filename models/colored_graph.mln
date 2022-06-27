@@ -4,13 +4,14 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-vertex = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+vertex = {1,...,50}
 E(vertex, vertex)
 a(vertex)
 b(vertex)
 
 !E(x,x).
-E(x,y) => E(y,x).
+!E(x,y) v E(y,x).
 a(x) v b(x).
 !a(x) v !b(x).
-E(x,y) => ((a(x) ^ !a(y)) v (b(x) ^ !b(y))).
+(!E(x,y) v !a(x) v !a(y)) ^ (!E(x,y) v !b(x) v !b(y)).
+|E| = 6

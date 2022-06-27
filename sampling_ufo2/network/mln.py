@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import numpy as np
-
 from typing import List, Set, FrozenSet
 
 from sampling_ufo2.fol.syntax import QuantifiedFormula, Const, Pred, Var
@@ -10,7 +8,7 @@ from sampling_ufo2.fol.utils import pad_vars
 
 class MLN(object):
     def __init__(self, formulas: List[QuantifiedFormula],
-                 weights: List[np.ndarray] = None,
+                 weights: List[float] = None,
                  domain: Set[Const] = None,
                  predicate_definition: Set[Pred] = None):
         self.formulas: List[QuantifiedFormula] = formulas
@@ -19,7 +17,7 @@ class MLN(object):
                 raise RuntimeError(
                     "Number of weights must match the number of formulas"
                 )
-        self.weights: List[np.ndarray] = weights
+        self.weights: List[float] = weights
         self.domain: Set[Const] = domain
 
         # deal with predicate_definition
@@ -43,11 +41,10 @@ class MLN(object):
                     vars = pad_vars(self.vars(), pred.arity)
                     self.formulas.append(
                         QuantifiedFormula.from_atom(pred(*vars)))
-                    self.weights.append(np.array(0.0, dtype=np.float))
+                    self.weights.append(0.0)
         else:
             self.predicate_definition = frozenset(preds)
 
-        self.dtype: np.dtype = self.weights[0].dtype
         self.idx: int
 
     def __iter__(self):
@@ -80,11 +77,11 @@ class MLN(object):
     def formula(self, index) -> QuantifiedFormula:
         return self.formulas[index]
 
-    def weight(self, index) -> np.ndarray:
+    def weight(self, index) -> float:
         return self.weights[index]
 
     def is_hard(self, index) -> bool:
-        return np.all(self.weight(index) == np.inf)
+        return self.weight(index) == float('inf')
 
     def __str__(self):
         s = ''
@@ -97,7 +94,8 @@ class MLN(object):
 
 
 class ComplexMLN(MLN):
-    def __init__(self, formulas: List[QuantifiedFormula], weights: List[List[complex]] = None, domain: Set[Const] = None, predicate_definition: Set[Pred] = None):
+    def __init__(self, formulas: List[QuantifiedFormula], weights: List[List[complex]] = None,
+                 domain: Set[Const] = None, predicate_definition: Set[Pred] = None):
         super().__init__(formulas, weights, domain, predicate_definition)
 
     def __str__(self):

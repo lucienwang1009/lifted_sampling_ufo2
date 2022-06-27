@@ -37,7 +37,7 @@ class MultinomialCoefficients(object):
 
     @staticmethod
     # @jit
-    def precompute(n: int):
+    def setup(n: int):
         """
         Pre-compute the pascal triangle.
 
@@ -64,7 +64,7 @@ class MultinomialCoefficients(object):
         """
         if MultinomialCoefficients.pt is None:
             raise RuntimeError(
-                'Please initialize MultinomialCoefficients first by `MultinomialCoefficients.precompute(n)`'
+                'Please initialize MultinomialCoefficients first by `MultinomialCoefficients.setup(n)`'
             )
         if sum(lst) > MultinomialCoefficients.n:
             raise RuntimeError(

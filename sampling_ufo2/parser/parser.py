@@ -1,10 +1,7 @@
-import numpy as np
-
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 from logzero import logger
 from typing import Set
-from collections import OrderedDict
 
 from sampling_ufo2.parser.grammars import mln_with_constraint_rules
 from sampling_ufo2.fol.syntax import Var, Const, Atom, Pred, Lit, DisjunctiveClause, CNF, Exist, QuantifiedFormula
@@ -37,7 +34,7 @@ class MLNVisitor(NodeVisitor):
                 # found predicate definition
                 continue
             weight, formula = weighted_formula
-            weights.append(np.array(weight, dtype=np.float))
+            weights.append(weight)
             formulas.append(formula)
         try:
             mln = MLN(formulas, weights, self.domain,
@@ -207,15 +204,17 @@ class MLNConstraintVisitor(MLNVisitor):
                 )
         if ccs is not None:
             assert isinstance(ccs, list)
-            pred2card = OrderedDict()
+            pred2card = set()
             for pred, card in ccs:
                 if pred in preds and card.is_integer():
-                    pred2card[preds[pred]] = int(card)
+                    pred2card.add((preds[pred], int(card)))
                 else:
                     raise MLNParseException(
                         "Cardinality constraint |%s|=%s is wrong", pred, card
                     )
-            cardinality_constraint = CardinalityConstraint(pred2card)
+            cardinality_constraint = CardinalityConstraint(
+                frozenset(pred2card)
+            )
         return mln, tree_constraint, cardinality_constraint
 
     def visit_constraints(self, node, visited_children):
