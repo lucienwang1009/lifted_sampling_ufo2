@@ -21,7 +21,8 @@ friends(person,person)
 smokes(person)
 
 3 smokes(x)
-1 !friends(x,y) v !smokes(x) v smokes(y) # i.e., friends(x,y) ^ smokes(x) => smokes(y). NOTE: only support CNF for now
+// NOTE: only support CNF for now
+1 !friends(x,y) v !smokes(x) v smokes(y) # i.e., friends(x,y) ^ smokes(x) => smokes(y). 
 ```
 
 2 colored tree:
