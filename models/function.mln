@@ -1,4 +1,4 @@
-domain = {1,...,20}
+domain = 20
 
 func(domain, domain)
 

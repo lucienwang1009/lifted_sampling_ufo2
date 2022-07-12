@@ -6,9 +6,8 @@ from typing import Callable, Dict, FrozenSet, List, Tuple
 from logzero import logger
 from itertools import product
 from sympy import Poly
-
-# NOTE: presume we use rational filed
-from sympy import QQ
+from gmpy2 import mpq
+from contexttimer import Timer
 
 from sampling_ufo2.wfomc.wmc import WMC
 from sampling_ufo2.fol.syntax import AndCNF, CNF, Pred, a, b, c, tautology, Lit
@@ -146,12 +145,12 @@ class CellGraph(object):
         should be removed
         '''
         evidences_c = cell.get_evidences(c)
-        evidences_a = cell.get_evidences(a)
-        evidences_b = cell.get_evidences(b)
+        # evidences_a = cell.get_evidences(a)
+        # evidences_b = cell.get_evidences(b)
         if all([
             self.cc_wmc.satisfiable(evidences_c),
-            self.ab_wmc.satisfiable(evidences_a),
-            self.ab_wmc.satisfiable(evidences_b)
+            # self.ab_wmc.satisfiable(evidences_a),
+            # self.ab_wmc.satisfiable(evidences_b)
         ]):
             return True
         return False
@@ -159,7 +158,7 @@ class CellGraph(object):
     def _compute_cell_weights(self):
         weights = dict()
         for cell in self.cells:
-            weight = QQ.one
+            weight = mpq(1)
             for i, pred in zip(cell.code, cell.preds):
                 if i:
                     weight = weight * self.get_weight(pred)[0]
@@ -172,7 +171,9 @@ class CellGraph(object):
         tables = dict()
         for i, cell in enumerate(self.cells):
             for j, other_cell in enumerate(self.cells):
-                tables[(cell, other_cell)] = BtypeTable(
-                    self.ab_wmc, cell, other_cell
-                )
+                with Timer() as t:
+                    tables[(cell, other_cell)] = BtypeTable(
+                        self.ab_wmc, cell, other_cell
+                    )
+                print(t.elapsed)
         return tables

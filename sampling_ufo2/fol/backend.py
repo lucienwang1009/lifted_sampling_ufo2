@@ -3,6 +3,7 @@ from __future__ import annotations
 import typing
 from sympy import Symbol
 from sympy.logic.boolalg import Boolean, Or, And, Equivalent, to_cnf, Not
+from sympy.logic import simplify_logic
 from typing import Dict
 
 if typing.TYPE_CHECKING:
@@ -53,7 +54,7 @@ class SympyBackend(SyntaxBackend):
         return Not(*args)
 
     @staticmethod
-    def to_cnf(symbol: Boolean) -> CNF:
+    def to_cnf(symbol: Boolean, simplify=True) -> CNF:
         from .syntax import Atom, Lit, DisjunctiveClause, CNF
 
         def to_internal(symbol: Boolean) -> Formula:
@@ -79,5 +80,7 @@ class SympyBackend(SyntaxBackend):
                         clauses.append(arg)
                 return CNF(frozenset(clauses))
 
+        if simplify:
+            symbol = simplify_logic(symbol)
         cnf = to_cnf(symbol)
         return CNF.from_formula(to_internal(cnf))

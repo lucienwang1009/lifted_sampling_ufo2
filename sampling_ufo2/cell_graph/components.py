@@ -11,6 +11,7 @@ from sympy import Poly
 from gmpy2 import mpq
 
 from sampling_ufo2.fol.syntax import Atom, Lit, Pred, Term, a, b, x
+from sampling_ufo2.fol.utils import get_predicates
 from sampling_ufo2.wfomc.wmc import WMC
 
 
@@ -48,9 +49,25 @@ class Cell(object):
         new_code[idx] = not new_code[idx]
         return Cell(tuple(new_code), self.preds)
 
-    def drop_pred(self, pred: Pred) -> Cell:
+    def drop_preds(self, preds: List[Pred] = None, prefixes: List[str] = None) -> Cell:
+        if not preds and not prefixes:
+            raise RuntimeError(
+                'Dropped pred is not assigned'
+            )
+        if preds is not None:
+            all_preds = [pred for pred in preds]
+        else:
+            all_preds = []
+
+        if prefixes is not None:
+            for prefix in prefixes:
+                all_preds.extend(
+                    get_predicates(prefix)
+                )
         new_code, new_preds = zip(
-            *[(c, p) for c, p in zip(self.code, self.preds) if p != pred])
+            *[(c, p) for c, p in zip(self.code, self.preds)
+              if p not in all_preds]
+        )
         return Cell(tuple(new_code), tuple(new_preds))
 
     def __str__(self):
@@ -145,6 +162,7 @@ class BtypeTable(object):
             btypes.append((frozenset(btype), weight))
         return btypes
 
+    @functools.lru_cache(maxsize=None)
     def satisfiable(self, evidences: FrozenSet[Lit] = None) -> bool:
         evidences = self.evidences.union(evidences)
         return self.wmc.satisfiable(evidences)

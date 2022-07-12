@@ -5,19 +5,20 @@ import numpy as np
 import logzero
 
 from logzero import logger
-from typing import Callable, Dict, FrozenSet, List, Tuple
+from typing import Callable, Dict, FrozenSet, List, Set, Tuple
 from collections import namedtuple, defaultdict
 from itertools import product
 from copy import deepcopy
 from gmpy2 import mpq
 from sympy import symbols, Poly
+from functools import partial
 
-from sampling_ufo2.utils import MultinomialCoefficients, multinomial, tree_sum
+from sampling_ufo2.utils import MultinomialCoefficients, multinomial, tree_sum, RingElement, PREDS_FOR_EXISTENTIAL
 from sampling_ufo2.cell_graph import CellGraph, Cell
-from sampling_ufo2.context import WFOMCContext
+from sampling_ufo2.context import WFOMCContext, EBType
 from sampling_ufo2.parser import parse_mln_constraint
 from sampling_ufo2.network import MLN, TreeConstraint, CardinalityConstraint
-from sampling_ufo2.fol.syntax import CNF, Lit, Pred
+from sampling_ufo2.fol.syntax import CNF, Const, Lit, Pred, a, b
 
 
 WFOMCConfigResult = namedtuple(
@@ -25,8 +26,91 @@ WFOMCConfigResult = namedtuple(
 )
 
 
+def get_config_result_cell_assignment(cell_assignment: List[Cell]) -> RingElement:
+    domain_size = len(cell_assignment)
+    res = mpq(1)
+    for i in range(domain_size):
+        for j in range(domain_size):
+            if i >= j:
+                continue
+            edge = (cell_assignment[i], cell_assignment[j])
+            res *= cell_graph.get_edge_weight(edge)
+    return res
+
+
+def precompute_ext_weight(cell_graph: CellGraph, domain_size: int,
+                          context: WFOMCContext) \
+        -> Dict[FrozenSet[Tuple[Cell, FrozenSet[Pred], int]], RingElement]:
+    existential_weights = defaultdict(lambda: 0)
+    cells = cell_graph.get_cells()
+    for partition in multinomial(len(cells), domain_size):
+        res = get_config_weight_standard(
+            cell_graph, dict(zip(cells, partition))
+        )
+        eu_config = defaultdict(lambda: 0)
+        for cell, n in zip(cells, partition):
+            raw_cell = cell.drop_preds(prefixes=PREDS_FOR_EXISTENTIAL)
+            for domain_pred, tseitin_preds in context.domain_to_evidence_preds.items():
+                if cell.is_positive(domain_pred):
+                    eu_config[(raw_cell, tseitin_preds)] += n
+        eu_config = dict(
+            (k, v) for k, v in eu_config.items() if v > 0
+        )
+        existential_weights[
+            frozenset((*k, v) for k, v in eu_config.items())
+        ] += (MultinomialCoefficients.coef(partition) * res)
+    # remove duplications
+    for eu_config in existential_weights.keys():
+        dup_factor = MultinomialCoefficients.coef(
+            tuple(c[2] for c in eu_config)
+        )
+        existential_weights[eu_config] /= dup_factor
+    return existential_weights
+
+
+def count_distribution(sentence: CNF,
+                       get_weight: Callable[[Pred], Tuple[RingElement, RingElement]],
+                       domain: Set[Const],
+                       preds: List[Pred],
+                       tree_constraint: TreeConstraint = None,
+                       cardinality_constraint: CardinalityConstraint = None) -> Dict[Tuple[int, ...], RingElement]:
+    pred2weight = {}
+    pred2sym = {}
+    if cardinality_constraint is not None:
+        preds = list(set(preds).union(
+            cardinality_constraint.pred2card.keys()
+        ))
+
+    syms = symbols('x0:{}'.format(len(preds)))
+    for sym, pred in zip(syms, preds):
+        if pred in pred2weight:
+            continue
+        weight = get_weight(pred)
+        pred2weight[pred] = (Poly(weight[0] * sym), weight[1])
+        pred2sym[pred] = sym
+
+    def get_weight_new(pred: Pred) -> Poly:
+        if pred in pred2weight:
+            return pred2weight[pred]
+        return get_weight(pred)
+
+    res = standard_wfomc(sentence, get_weight_new, domain, tree_constraint)
+
+    pred2sym_index = dict(
+        (pred, res.gens.index(pred2sym[pred])) for pred in preds
+    )
+    count_dist = {}
+    for degrees, coef in res.as_dict().items():
+        if cardinality_constraint is None or all(
+            degrees[pred2sym_index[pred] == card]
+            for pred, card in cardinality_constraint.pred2card
+        ):
+            count_dist[degrees] = coef
+    return count_dist
+
+
 def assign_cell(cell_graph: CellGraph,
-                config: Dict[Cell, int]) -> Tuple[List[Cell], Poly]:
+                config: Dict[Cell, int]) -> Tuple[List[Cell], RingElement]:
     cell_assignment = list()
     w = 1
     for cell, n in config.items():
@@ -36,8 +120,8 @@ def assign_cell(cell_graph: CellGraph,
     return cell_assignment, w
 
 
-def get_config_weight_standard(context: WFOMCContext, cell_graph: CellGraph,
-                               cell_config: Dict[Cell, int]) -> Poly:
+def get_config_weight_standard(cell_graph: CellGraph,
+                               cell_config: Dict[Cell, int]) -> RingElement:
     res = 1
     for i, (cell_i, n_i) in enumerate(cell_config.items()):
         if n_i == 0:
@@ -57,11 +141,11 @@ def get_config_weight_standard(context: WFOMCContext, cell_graph: CellGraph,
     return res
 
 
-def get_config_weight_tree(context: WFOMCContext, cell_graph: CellGraph,
-                           cell_config: Dict[Cell, int]) -> Poly:
+def get_config_weight_tree(cell_graph: CellGraph, cell_config: Dict[Cell, int],
+                           tree_constraint: TreeConstraint) -> RingElement:
     # assign each element a cell type
     cell_assignment, cell_weight = assign_cell(cell_graph, cell_config)
-    domain_size = len(context.domain)
+    domain_size = sum(n for c, n in cell_config.items())
     A = np.zeros(
         [domain_size, domain_size],
         dtype=np.object
@@ -74,10 +158,10 @@ def get_config_weight_tree(context: WFOMCContext, cell_graph: CellGraph,
                 continue
             edge = (cell_assignment[i], cell_assignment[j])
             ab_p = cell_graph.get_edge_weight(
-                edge, context.tree_p_evidence
+                edge, frozenset([Lit(tree_constraint.pred(a, b))])
             )
             ab_n = cell_graph.get_edge_weight(
-                edge, context.tree_n_evidence
+                edge, frozenset([Lit(tree_constraint.pred(a, b), False)])
             )
             if ab_n == 0:
                 # WMC(\phi \land \not R(a,b)) = 0
@@ -93,28 +177,172 @@ def get_config_weight_tree(context: WFOMCContext, cell_graph: CellGraph,
     return res
 
 
-def wfomc(context: WFOMCContext):
-    ccpred2weight = {}
-    if context.contain_cardinality_constraint():
-        pred2card = cardinality_constraint.pred2card
-        syms = symbols('x0:{}'.format(len(pred2card)))
-        monomial = mpq(1)
-        for sym, (pred, card) in zip(syms, context.cardinality_constraint.pred2card):
-            weight = context.get_weight(pred)
-            ccpred2weight[pred] = (Poly(weight[0] * sym), weight[1])
-            monomial = monomial * (sym ** card)
+class ExtConfig(object):
+    def __init__(self, cell_config: Dict[Cell, int],
+                 tseitin_to_extpred: Dict[Pred, Pred]):
+        self.cell_config = cell_config
+        self.cells = list(self.cell_config.keys())
+        self.tseitin_to_extpred = tseitin_to_extpred
+        self.eu_config = defaultdict(lambda: 0)
+        for cell, num in self.cell_config.items():
+            eetype = set()
+            for tseitin, ext in tseitin_to_extpred.items():
+                if not cell.is_positive(ext):
+                    eetype.add(tseitin)
+            self.eu_config[(cell, frozenset(eetype))] = num
+        logger.debug('initial eu_config: %s', self.eu_config)
 
-    def get_weight_new(pred: Pred) -> Poly:
-        if pred in ccpred2weight:
-            return ccpred2weight[pred]
-        return context.get_weight(pred)
+    def all_satisfied(self):
+        for cell in self.cells:
+            if self.eu_config[(cell, frozenset())] != self.cell_config[cell]:
+                return False
+        return True
 
-    cell_graph = CellGraph(context.sentence, get_weight_new)
-    cell_graph.show()
+    def select_eutype(self):
+        assert not self.all_satisfied()
+        for (cell, eetype), num in self.eu_config.items():
+            if len(eetype) != 0 and num > 0:
+                return cell, eetype
+
+    def reduce_element(self, cell, eetype):
+        self.eu_config[(cell, eetype)] -= 1
+
+    def reduce_eetype(self, eetype, eb_config):
+        if len(eetype) == 0:
+            return eetype
+        for ebtype, num in eb_config.items():
+            if num > 0:
+                # ab_p
+                eetype = eetype.difference(set(
+                    tseitin for tseitin in eetype
+                    if ebtype.is_positive(self.tseitin_to_extpred[tseitin])[0]
+                ))
+            if len(eetype) == 0:
+                return eetype
+        return eetype
+
+    def satisfied(self, eetype, eb_config):
+        assert len(eetype) > 0
+        if len(self.reduce_eetype(eetype, eb_config)) == 0:
+            return True
+        return False
+
+    def iter_eb_config(
+        self,
+        ebtype_weights: Dict[Cell, Dict[EBType, RingElement]]
+    ):
+        for raw_config in product(
+                *list(multinomial(
+                    len(ebtype_weights[cell]), num
+                ) for (cell, _), num in self.eu_config.items())
+        ):
+            eb_config = defaultdict(dict)
+            for i, (cell, eetype) in enumerate(self.eu_config.keys()):
+                config = raw_config[i]
+                for j, ebtype in enumerate(ebtype_weights[cell].keys()):
+                    eb_config[(cell, eetype)][ebtype] = config[j]
+            yield eb_config
+
+    def reduce_eu_config(self, eb_config):
+        reduced_eu_config = deepcopy(self.eu_config)
+        for (cell, eetype), config in eb_config.items():
+            for ebtype, num in config.items():
+                reduced_eetype = eetype.difference(set(
+                    tseitin for tseitin in eetype
+                    if ebtype.is_positive(self.tseitin_to_extpred[tseitin])[1]
+                ))
+                reduced_eu_config[(cell, eetype)] -= num
+                reduced_eu_config[(cell, reduced_eetype)] += num
+        return frozenset(
+            (*k, v) for k, v in reduced_eu_config.items() if v > 0
+        )
+
+    def __str__(self):
+        s = ''
+        for (cell, eetype), num in self.eu_config.items():
+            s += 'Cell {}, {}: {}\n'.format(cell, list(eetype), num)
+        return s
+
+    def __repr__(self):
+        return str(self)
+
+
+def get_config_weight_existential(cell_graph: CellGraph,
+                                  cell_config: Dict[Cell, int],
+                                  ext_weights,
+                                  context: WFOMCContext) -> WFOMCConfigResult:
+    ext_config = ExtConfig(cell_config, context.tseitin_to_extpred)
+    logger.debug('ext config: \n%s', ext_config)
+    if ext_config.all_satisfied():
+        logger.debug('All cells satisfies existential quantifier')
+        res = get_config_weight_standard(cell_graph, cell_config)
+        return res
+
+    selected_cell, selected_eetype = ext_config.select_eutype()
+    logger.debug('select cell: %s, ee type: %s',
+                 selected_cell, selected_eetype)
+    ext_config.reduce_element(selected_cell, selected_eetype)
+
+    ebtype_weights: Dict[Cell, Dict[EBType, RingElement]] = dict()
+    # filter all impossible EB-types
+    # NOTE: here the order of cells matters
+    for cell in cell_graph.cells:
+        cell_pair = (selected_cell, cell)
+        weights = dict()
+        for ebtype in context.ebtypes:
+            evidences = ebtype.get_evidences()
+            if cell_graph.satisfiable(cell_pair, evidences):
+                weights[ebtype] = cell_graph.get_edge_weight(
+                    cell_pair, evidences
+                )
+        ebtype_weights[cell] = weights
+
+    res = 0
+    for eb_config in ext_config.iter_eb_config(
+        ebtype_weights
+    ):
+        w = mpq(1)
+        # logger.debug('eb_config: \t%s\n eb_config_per_cell: \t%s\n overall_eb_config:\t%s',
+        #              eb_config, eb_config_per_cell, overall_eb_config)
+        eb_config_per_cell = defaultdict(lambda: defaultdict(lambda: 0))
+        overall_eb_config = defaultdict(lambda: 0)
+        for (cell, eetype), config in eb_config.items():
+            for ebtype, num in config.items():
+                eb_config_per_cell[cell][ebtype] += num
+                overall_eb_config[ebtype] += num
+
+        if not ext_config.satisfied(selected_eetype, overall_eb_config):
+            continue
+
+        for _, config in eb_config.items():
+            w *= MultinomialCoefficients.coef(tuple(config.values()))
+        for cell, config in eb_config_per_cell.items():
+            for ebtype, num in config.items():
+                w *= (ebtype_weights[cell][ebtype] ** num)
+
+        reduced_eu_config = ext_config.reduce_eu_config(eb_config)
+        res += (w * ext_weights[reduced_eu_config])
+        logger.debug('reduced eu_config %s:\t%s', reduced_eu_config,
+                     ext_weights[reduced_eu_config])
+    res *= cell_graph.get_cell_weight(selected_cell)
+    return res
+
+
+def existentially_wfomc(context: WFOMCContext,
+                        get_weight: Callable[[Pred], Tuple[RingElement, RingElement]]) \
+        -> RingElement:
+    # here the sentence is the conjunction of universally quantified formula
+    cell_graph = CellGraph(context.sentence, get_weight)
     cells = cell_graph.get_cells()
     n_cells = len(cells)
     domain_size = len(context.domain)
     MultinomialCoefficients.setup(domain_size)
+
+    skolem_cell_graph = CellGraph(context.skolemized_sentence, get_weight)
+    ext_weights = precompute_ext_weight(
+        skolem_cell_graph, domain_size - 1, context
+    )
+    logger.debug(ext_weights)
 
     res = mpq(0)
     for partition in multinomial(n_cells, domain_size):
@@ -124,15 +352,77 @@ def wfomc(context: WFOMCContext):
             '=' * 15 + ' Compute WFOMC for the partition %s ' + '=' * 15,
             cell_config
         )
-        if tree_constraint is not None:
-            res = res + coef * \
-                get_config_weight_tree(context, cell_graph, cell_config)
-        else:
-            res = res + coef * \
-                get_config_weight_standard(context, cell_graph, cell_config)
+        weight = get_config_weight_existential(
+            cell_graph, cell_config, ext_weights, context
+        )
+        res = res + coef * weight
+        logger.debug(
+            'Weight = %s', weight
+        )
+        logger.debug(
+            '=' * 100
+        )
+    return res
 
-    if cardinality_constraint is not None:
+
+def standard_wfomc(sentence: CNF, get_weight: Callable[[Pred], Tuple[RingElement, RingElement]],
+                   domain: Set[Const], tree_constraint: TreeConstraint = None) -> RingElement:
+    cell_graph = CellGraph(sentence, get_weight)
+    cells = cell_graph.get_cells()
+    n_cells = len(cells)
+    domain_size = len(domain)
+    MultinomialCoefficients.setup(domain_size)
+
+    if tree_constraint is not None:
+        get_config_weight = partial(
+            get_config_weight_tree, tree_constraint=tree_constraint
+        )
+    else:
+        get_config_weight = get_config_weight_standard
+
+    res = mpq(0)
+    for partition in multinomial(n_cells, domain_size):
+        coef = MultinomialCoefficients.coef(partition)
+        cell_config = dict(zip(cells, partition))
+        logger.debug(
+            '=' * 15 + ' Compute WFOMC for the partition %s ' + '=' * 15,
+            cell_config
+        )
+        res = res + coef * get_config_weight(
+            cell_graph, cell_config
+        )
+    return res
+
+
+def wfomc(context: WFOMCContext) -> mpq:
+    ccpred2weight = {}
+    if context.contain_cardinality_constraint():
+        pred2card = context.cardinality_constraint.pred2card
+        syms = symbols('x0:{}'.format(len(pred2card)))
+        monomial = mpq(1)
+        for sym, (pred, card) in zip(syms, context.cardinality_constraint.pred2card):
+            weight = context.get_weight(pred)
+            ccpred2weight[pred] = (Poly(weight[0] * sym), weight[1])
+            monomial = monomial * (sym ** card)
+
+    def get_weight_new(pred: Pred) -> RingElement:
+        if pred in ccpred2weight:
+            return ccpred2weight[pred]
+        return context.get_weight(pred)
+
+    if context.contain_existential_quantifier():
+        res = existentially_wfomc(context, get_weight_new)
+    else:
+        res = standard_wfomc(
+            context.sentence,
+            get_weight_new,
+            context.domain,
+            context.tree_constraint
+        )
+
+    if context.contain_cardinality_constraint():
         res = Poly(res, syms)
+        logger.debug('wfomc polynomial: %s', res)
         res = res.coeff_monomial(monomial)
     return res
 
@@ -167,7 +457,7 @@ class WFOMC(object):
                          self.existential_weights)
 
     def assign_cell(self, cell_graph: CellGraph,
-                    config: Dict[Cell, int]) -> Tuple[List[Cell], Poly]:
+                    config: Dict[Cell, int]) -> Tuple[List[Cell], RingElement]:
         cell_assignment = list()
         w = 1
         for cell, n in config.items():
@@ -177,7 +467,7 @@ class WFOMC(object):
         return cell_assignment, w
 
     def _get_config_weight_standard(self, cell_graph: CellGraph,
-                                    cell_config: Dict[Cell, int]) -> Poly:
+                                    cell_config: Dict[Cell, int]) -> RingElement:
         res = 1
         for i, (cell_i, n_i) in enumerate(cell_config.items()):
             if n_i == 0:
@@ -363,6 +653,11 @@ class WFOMC(object):
         n_cells = len(cells)
 
         res = 0
+        if self.context.contain_tree_constraint():
+            self._get_config_result_tree
+        else:
+            self._get_config_weight_standard
+
         for partition in multinomial(n_cells, self.domain_size):
             coef = MultinomialCoefficients.coef(partition)
             cell_config = dict(zip(cells, partition))
@@ -420,9 +715,15 @@ if __name__ == '__main__':
     mln, tree_constraint, cardinality_constraint = parse_mln_constraint(
         args.input
     )
-    # algorithm = WFOMCAlgorithm(mln, tree_constraint, cardinality_constraint)
-    # res = algorithm.compute()
     context = WFOMCContext(mln, tree_constraint, cardinality_constraint)
+    # print(count_distribution(
+    #     context.skolemized_sentence,
+    #     context.get_weight,
+    #     list(context.domain)[:-1],
+    #     list(context.tseitin_to_extpred.keys()),
+    #     context.tree_constraint,
+    #     context.cardinality_constraint
+    # ))
     res = wfomc(context)
     logger.info('WFOMC (arbitrary precision): %s', res)
     logger.info('WFOMC (round): %s', float(res))

@@ -23,12 +23,14 @@ from sampling_ufo2.network import MLN, TreeConstraint, CardinalityConstraint
 
 
 class ExtConfig(object):
-    def __init__(self, cell_assignment: List[Cell], ext_preds: List[Pred]):
+    def __init__(self, cell_assignment: List[Cell],
+                 ext_preds: List[Pred], tseitin_preds: List[Pred]):
         self.cell_assignment: List[Cell] = cell_assignment
         self.cells: List[Cell] = list(set(self.cell_assignment))
         self.ext_preds: List[Pred] = ext_preds
-        assert len(self.ext_preds) == 1
-        self.ext_pred = self.ext_preds[0]
+        self.tseitin_preds: List[Pred] = tseitin_preds
+        # assert len(self.ext_preds) == 1
+        # self.ext_pred = self.ext_preds[0]
 
         # [element_idx, cell, ext_pred1, ext_pred2, ..., ext_predm]
         self.config: pd.DataFrame

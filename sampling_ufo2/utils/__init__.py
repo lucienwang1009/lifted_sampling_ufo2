@@ -1,8 +1,17 @@
 import numpy as np
 
-
 from .multinomial import MultinomialCoefficients, multinomial
 from .tree_sum import TreeSumContext, tree_sum
+from .third_typing import RingElement
+
+
+AUXILIARY_PRED_NAME = 'aux'
+TSEITIN_PRED_NAME = 'tseitin'
+SKOLEM_PRED_NAME = 'skolem'
+EVIDOM_PRED_NAME = 'evidom'
+PREDS_FOR_EXISTENTIAL = [
+    TSEITIN_PRED_NAME, SKOLEM_PRED_NAME, EVIDOM_PRED_NAME
+]
 
 
 def format_np_complex(num: np.ndarray) -> str:
@@ -13,6 +22,12 @@ __all__ = [
     "MultinomialCoefficients",
     "multinomial",
     "TreeSumContext",
+    'RingElement',
     "tree_sum",
     "format_np_complex",
+    "AUXILIARY_PRED_NAME",
+    "TSEITIN_PRED_NAME",
+    "SKOLEM_PRED_NAME",
+    "EVIDOM_PRED_NAME",
+    "PREDS_FOR_EXISTENTIAL"
 ]

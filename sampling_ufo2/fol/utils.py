@@ -3,16 +3,15 @@ from __future__ import annotations
 import os
 
 from collections import defaultdict
-from typing import FrozenSet
+from typing import FrozenSet, List
 from nnf import Or, And, dsharp, NNF
 from nnf import Var as nnf_var
 
-from .syntax import CNF, Lit, Pred, Var, Const, Substitution
+from .syntax import CNF, Const, DisjunctiveClause, Lit, Pred, Substitution, Var
 from .syntax import x, y, z
 
 
-auxiliary_pred_name = 'aux'
-cnt_predicates = defaultdict(lambda: 0)
+PREDICATES = defaultdict(list)
 
 dsharp_exe = os.path.join(
     os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
@@ -21,11 +20,16 @@ dsharp_exe = os.path.join(
 )
 
 
-def new_predicate(arity: int, name: str = auxiliary_pred_name) -> Pred:
-    global cnt_predicates
-    p = Pred('{}{}'.format(name, cnt_predicates[name]), arity)
-    cnt_predicates[name] += 1
+def new_predicate(arity: int, name: str) -> Pred:
+    global PREDICATES
+    p = Pred('{}{}'.format(name, len(PREDICATES[name])), arity)
+    PREDICATES[name].append(p)
     return p
+
+
+def get_predicates(name: str) -> List[Pred]:
+    global CNT_PREDICATES
+    return PREDICATES[name]
 
 
 def to_nnf_var(lit: Lit) -> Var:
@@ -74,3 +78,18 @@ def ground_FO2(sentence: CNF, c1: Const, c2: Const = None) -> CNF:
     substitution = Substitution(zip(variables, constants))
     gnd_formula = sentence.substitute(substitution)
     return gnd_formula
+
+
+def exact_one_of(preds: List[Pred]) -> CNF:
+    lits = [Lit(p(x)) for p in preds]
+    # p1(x) v p2(x) v ... v pm(x)
+    clauses = [DisjunctiveClause(frozenset(lits))]
+    for i, l1 in enumerate(lits):
+        for j, l2 in enumerate(lits):
+            if i < j:
+                clauses.append(
+                    DisjunctiveClause(
+                        frozenset([l1.negate(), l2.negate()])
+                    )
+                )
+    return CNF(frozenset(clauses))
