@@ -4,15 +4,13 @@ from logzero import logger
 from typing import Callable, Dict, Set, Tuple, List, FrozenSet
 from dataclasses import dataclass, field
 from itertools import product
-from gmpy2 import mpq
-from sympy import simplify_logic
 
 from sampling_ufo2.network.mln import MLN
 from sampling_ufo2.network.constraint import TreeConstraint, CardinalityConstraint
 from sampling_ufo2.fol.syntax import AndCNF, CNF, Const, Lit, Pred, Atom, DisjunctiveClause, a, b, x
 from sampling_ufo2.fol.utils import new_predicate, exact_one_of
 from sampling_ufo2.utils import AUXILIARY_PRED_NAME, TSEITIN_PRED_NAME, \
-    SKOLEM_PRED_NAME, EVIDOM_PRED_NAME
+    SKOLEM_PRED_NAME, EVIDOM_PRED_NAME, Rational
 
 
 @dataclass(frozen=True)
@@ -79,7 +77,7 @@ class WFOMCContext(object):
 
         self.domain: Set[Const] = self.mln.domain
         self.sentence: CNF
-        self.weights: Dict[Pred, mpq] = dict()
+        self.weights: Dict[Pred, Rational] = dict()
 
         # For existantial quantifiers
         # existential quantified predicates,
@@ -91,6 +89,7 @@ class WFOMCContext(object):
         self.tseitin_to_skolem: Dict[Pred, Pred] = dict()
         self.domain_preds: List[Pred] = list()
         self.domain_to_evidence_preds: Dict[Pred, FrozenSet[Pred]] = dict()
+        self.eutype_preds: List[Pred] = list()
         self.skolemized_sentence: CNF  # skolemized sentence
         # self._skolem_preds: List[Pred] = list()  # skolem predicates
         # self._skolem_to_tseitin: Dict[Pred, Pred] = dict()
@@ -140,7 +139,7 @@ class WFOMCContext(object):
             self.skolemized_sentence = self.skolemized_sentence.And(
                 AndCNF(*evidence_sentence)
             ).And(exact_one_of(self.domain_preds))
-            print(self.skolemized_sentence.symbol)
+
             logger.info('skolemized sentence for WFOMC: %s',
                         self.skolemized_sentence)
 
@@ -166,20 +165,20 @@ class WFOMCContext(object):
     def contain_existential_quantifier(self) -> bool:
         return len(self.ext_preds) > 0
 
-    def get_weight_fn(self, weights: Dict[Pred, mpq] = None) \
-            -> Callable[[Pred], Tuple[mpq, mpq]]:
+    def get_weight_fn(self, weights: Dict[Pred, Rational] = None) \
+            -> Callable[[Pred], Tuple[Rational, Rational]]:
         if weights is None:
             weights = self.weights
 
-        def get_weight(pred: Pred) -> Tuple[mpq, mpq]:
-            default = mpq(1)
+        def get_weight(pred: Pred) -> Tuple[Rational, Rational]:
+            default = Rational(1, 1)
             if pred in weights:
                 return weights[pred]
             return (default, default)
         return get_weight
 
-    def get_weight(self, pred: Pred) -> Tuple[mpq, mpq]:
-        default = mpq(1)
+    def get_weight(self, pred: Pred) -> Tuple[Rational, Rational]:
+        default = Rational(1, 1)
         if pred in self.weights:
             return self.weights[pred]
         return (default, default)
@@ -245,7 +244,7 @@ class WFOMCContext(object):
                         ])
                     )
                 )
-                self.weights[skolem_pred] = (mpq(1), mpq(-1))
+                self.weights[skolem_pred] = (Rational(1, 1), Rational(-1, 1))
                 # self._skolem_preds.append(skolem_pred)
                 # self._skolem_to_tseitin[skolem_pred] = tseitin_pred
                 self.tseitin_to_skolem[tseitin_pred] = skolem_pred
@@ -264,7 +263,7 @@ class WFOMCContext(object):
                     sentence.append(aux_equation)
                     skolemized_sentence.append(aux_equation)
                     self.weights[aux_pred] = (
-                        mpq(math.exp(weight)), mpq(1)
+                        Rational(math.exp(weight), 1), Rational(1, 1)
                     )
         self.sentence = AndCNF(*sentence)
         if len(skolemized_sentence) > 0:

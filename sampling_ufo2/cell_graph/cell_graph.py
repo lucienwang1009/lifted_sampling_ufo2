@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import pandas as pd
+import functools
 
 from typing import Callable, Dict, FrozenSet, List, Tuple
 from logzero import logger
-from itertools import product
 from sympy import Poly
-from gmpy2 import mpq
-from contexttimer import Timer
 
 from sampling_ufo2.wfomc.wmc import WMC
-from sampling_ufo2.fol.syntax import AndCNF, CNF, Pred, a, b, c, tautology, Lit
+from sampling_ufo2.fol.syntax import AndCNF, CNF, Lit, Pred, a, b, c
 from sampling_ufo2.fol.utils import ground_FO2
+from sampling_ufo2.utils import Rational
 from .components import Cell, BtypeTable
 
 
@@ -41,9 +40,6 @@ class CellGraph(object):
         self.gnd_formula_cc: CNF = ground_FO2(self.sentence, c)
         logger.debug('ground a b: %s', self.gnd_formula_ab)
 
-        self.ab_wmcs = {
-            tautology: WMC(self.gnd_formula_ab, self.get_weight)
-        }
         self.cc_wmc = WMC(self.gnd_formula_cc, self.get_weight)
         self.ab_wmc = WMC(
             self.gnd_formula_ab, self.get_weight
@@ -51,10 +47,7 @@ class CellGraph(object):
         # build cells
         self.cells: List[Cell] = self._build_cells()
         # filter cells
-        logger.info('before filtering, the number of cells: %s',
-                    len(self.cells))
-        self.cells = list(filter(self._valid_cell, self.cells))
-        logger.info('after filtering, the number of cells: %s',
+        logger.info('the number of valid cells: %s',
                     len(self.cells))
 
         self.cell_weights: Dict[Cell, Poly]
@@ -103,6 +96,7 @@ class CellGraph(object):
             return self.cells
         return list(filter(cell_filter, self.cells))
 
+    @functools.lru_cache(maxsize=None, typed=True)
     def get_cell_weight(self, cell: Cell) -> Poly:
         if cell not in self.cell_weights:
             logger.warning(
@@ -113,20 +107,23 @@ class CellGraph(object):
 
     def _check_existence(self, cells: Tuple[Cell, Cell]):
         if cells not in self.edge_tables:
-            raise RuntimeError(
+            raise ValueError(
                 "Cells (%s) not found, note that the order of cells matters!", cells
             )
 
+    @functools.lru_cache(maxsize=None, typed=True)
     def get_edge_weight(self, cells: Tuple[Cell, Cell],
                         evidences: FrozenSet[Lit] = None) -> Poly:
         self._check_existence(cells)
         return self.edge_tables.get(cells).get_weight(evidences)
 
+    @functools.lru_cache(maxsize=None, typed=True)
     def satisfiable(self, cells: Tuple[Cell, Cell],
                     evidences: FrozenSet[Lit] = None) -> bool:
         self._check_existence(cells)
         return self.edge_tables.get(cells).satisfiable(evidences)
 
+    @functools.lru_cache(maxsize=None)
     def get_btypes(self, cells: Tuple[Cell, Cell],
                    evidences: FrozenSet[Lit] = None) -> Tuple[FrozenSet[Lit], Poly]:
         self._check_existence(cells)
@@ -134,31 +131,17 @@ class CellGraph(object):
 
     def _build_cells(self):
         cells = []
-        n_preds = len(self.preds)
-        for i in product(*([[True, False]] * n_preds)):
-            cells.append(Cell(i, self.preds))
+        code = {}
+        for model in self.gnd_formula_cc.models():
+            for lit in model:
+                code[lit.pred()] = lit.positive
+            cells.append(Cell(tuple(code[p] for p in self.preds), self.preds))
         return cells
-
-    def _valid_cell(self, cell: Cell):
-        '''
-        Any cell with zero w and zero wmc with all assignments for other variables
-        should be removed
-        '''
-        evidences_c = cell.get_evidences(c)
-        # evidences_a = cell.get_evidences(a)
-        # evidences_b = cell.get_evidences(b)
-        if all([
-            self.cc_wmc.satisfiable(evidences_c),
-            # self.ab_wmc.satisfiable(evidences_a),
-            # self.ab_wmc.satisfiable(evidences_b)
-        ]):
-            return True
-        return False
 
     def _compute_cell_weights(self):
         weights = dict()
         for cell in self.cells:
-            weight = mpq(1)
+            weight = Rational(1, 1)
             for i, pred in zip(cell.code, cell.preds):
                 if i:
                     weight = weight * self.get_weight(pred)[0]
@@ -171,9 +154,7 @@ class CellGraph(object):
         tables = dict()
         for i, cell in enumerate(self.cells):
             for j, other_cell in enumerate(self.cells):
-                with Timer() as t:
-                    tables[(cell, other_cell)] = BtypeTable(
-                        self.ab_wmc, cell, other_cell
-                    )
-                print(t.elapsed)
+                tables[(cell, other_cell)] = BtypeTable(
+                    self.ab_wmc, cell, other_cell
+                )
         return tables

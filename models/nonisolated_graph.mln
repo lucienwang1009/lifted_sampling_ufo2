@@ -4,9 +4,9 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-vertex = 3
+vertex = 10
 E(vertex, vertex)
-R(vertex, vertex)
+// R(vertex, vertex)
 // T1(vertex)
 // T2(vertex)
 
@@ -16,9 +16,9 @@ Exist y E(x,y).
 // -1 E(x,y)
 // Exist y !T1(x) v E(x,y).
 // T1(x) v !E(x,y).
-!R(x,y) v R(y,x).
-!R(x,x).
-Exist y R(x,y).
+// !R(x,y) v R(y,x).
+// !R(x,x).
+// Exist y R(x,y).
 // Exist y !T2(x) v R(x,y).
 // T2(x) v !R(x,y).
 // T1(1).

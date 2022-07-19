@@ -2,10 +2,11 @@ from __future__ import annotations
 
 
 from dataclasses import dataclass, field
-from typing import FrozenSet, List, Tuple
+from typing import FrozenSet, List, Tuple, Iterable
 from collections import OrderedDict
+from pysat.solvers import Solver
 
-from .backend import SympyBackend as backend
+from . import backend
 
 
 class Term(object):
@@ -315,8 +316,39 @@ class CNF():
     def __repr__(self):
         return str(self)
 
+    def _encode_Dimacs(self):
+        decode = dict(enumerate(self.atoms(), start=1))
+        encode = {v: k for k, v in decode.items()}
 
-@ dataclass(frozen=True)
+        clauses = [
+            [encode[lit.atom] if lit.positive else -encode[lit.atom]
+             for lit in clause.literals]
+            for clause in self.clauses
+        ]
+        return clauses, decode
+
+    def _solver_for(self):
+        clauses, decode = self._encode_Dimacs()
+        solver = Solver(bootstrap_with=clauses)
+        return solver, decode
+
+    def models(self) -> Iterable[FrozenSet[Lit]]:
+        """
+        Yield all models of the formula
+
+        :rtype Iterable[FrozenSet[Lit]]: models
+        """
+        solver, decode = self._solver_for()
+        with solver:
+            if not solver.solve():
+                return
+            for model in solver.enum_models():
+                yield frozenset(
+                    [Lit(decode[abs(num)], num > 0) for num in model]
+                )
+
+
+@dataclass(frozen=True)
 class Exist():
     quantified_vars: FrozenSet[Var]
 
@@ -329,7 +361,7 @@ class Exist():
         return str(self)
 
 
-@ dataclass(frozen=True)
+@dataclass(frozen=True)
 class QuantifiedFormula(Formula):
     cnf: CNF
     exist: Exist = None
@@ -368,19 +400,19 @@ class QuantifiedFormula(Formula):
             'Not support conjunct two formula'
         )
 
-    @ property
+    @property
     def clauses(self) -> FrozenSet[DisjunctiveClause]:
         return self.cnf.clauses
 
-    @ classmethod
+    @classmethod
     def from_pred(cls, pred: Pred, variables: List[Term]) -> QuantifiedFormula:
         return cls(CNF.from_pred(pred, variables))
 
-    @ classmethod
+    @classmethod
     def from_atom(cls, atom: Atom) -> QuantifiedFormula:
         return cls(CNF.from_atom(atom))
 
-    @ classmethod
+    @classmethod
     def from_lit(cls, lit: Lit) -> QuantifiedFormula:
         return cls(CNF.from_lit(lit))
 
@@ -407,9 +439,6 @@ def AndCNF(*cnfs: List[CNF]) -> CNF:
     symbols = [cnf.symbol for cnf in cnfs]
     and_symbols = backend.And(*symbols)
     cnf = backend.to_cnf(and_symbols)
-    # logger.debug('AndCNF:')
-    # logger.debug('Input CNFs: %s', cnfs)
-    # logger.debug('Output CNF: %s', cnf)
     return cnf
 
 

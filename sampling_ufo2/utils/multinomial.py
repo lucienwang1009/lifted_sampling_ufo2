@@ -1,6 +1,6 @@
 import functools
 
-from typing import Tuple, List
+from typing import Tuple, List, FrozenSet
 
 
 def multinomial(length: int, total_sum: int) -> Tuple[int]:
@@ -58,7 +58,7 @@ class MultinomialCoefficients(object):
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def coef(lst: Tuple[int]) -> int:
+    def coef(lst: FrozenSet[int]) -> int:
         """
         Compute the multinomial coefficient of `lst`
         """

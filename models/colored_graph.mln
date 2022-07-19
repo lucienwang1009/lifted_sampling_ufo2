@@ -4,7 +4,7 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-vertex = {1,...,50}
+vertex = 200
 E(vertex, vertex)
 a(vertex)
 b(vertex)
@@ -14,4 +14,5 @@ b(vertex)
 a(x) v b(x).
 !a(x) v !b(x).
 (!E(x,y) v !a(x) v !a(y)) ^ (!E(x,y) v !b(x) v !b(y)).
-|E| = 6
+|E| = 200
+|a| = 20

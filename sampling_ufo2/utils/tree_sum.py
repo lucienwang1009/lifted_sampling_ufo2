@@ -2,10 +2,10 @@ import numpy as np
 from typing import List, Tuple
 
 from sympy import Poly, Matrix
-from gmpy2 import mpq
-
 from logzero import logger
 from collections import defaultdict
+
+from .polynomial import Rational
 
 
 def tree_sum(w: np.ndarray, contracted_edges: List[Tuple[int]] = None) -> Poly:
@@ -16,7 +16,7 @@ def tree_sum(w: np.ndarray, contracted_edges: List[Tuple[int]] = None) -> Poly:
     # map contracted vertex to the contracting vertex
     contraction_mapping = list(range(w.shape[0]))
     contraction_mapping_reverse = defaultdict(set)
-    prod_weight = mpq(1)
+    prod_weight = Rational(1, 1)
     if contracted_edges is not None:
         for edge in contracted_edges:
             v1 = contraction_mapping[edge[0]]
@@ -31,7 +31,7 @@ def tree_sum(w: np.ndarray, contracted_edges: List[Tuple[int]] = None) -> Poly:
             w[v1, :] += w[v2, :]
             w[:, v1] += w[:, v2]
             contraction_vertices.add(v2)
-            w[range(w.shape[1]), range(w.shape[1])] = mpq(0)
+            w[range(w.shape[1]), range(w.shape[1])] = Rational(0, 1)
             # map v2 to v1
             contraction_mapping[v2] = v1
             contraction_mapping_reverse[v1].add(v2)

@@ -5,14 +5,13 @@ import functools
 
 from typing import FrozenSet, List, Set, Tuple
 from dataclasses import dataclass, field
-from itertools import product
 from logzero import logger
 from sympy import Poly
-from gmpy2 import mpq
 
-from sampling_ufo2.fol.syntax import Atom, Lit, Pred, Term, a, b, x
+from sampling_ufo2.fol.syntax import Lit, Pred, Term, a, b, x
 from sampling_ufo2.fol.utils import get_predicates
 from sampling_ufo2.wfomc.wmc import WMC
+from sampling_ufo2.utils import Rational
 
 
 @dataclass(frozen=True)
@@ -40,6 +39,7 @@ class Cell(object):
                 evidences.add(Lit(atom, False))
         return frozenset(evidences)
 
+    @functools.lru_cache(maxsize=None)
     def is_positive(self, pred: Pred) -> bool:
         return self.code[self.preds.index(pred)]
 
@@ -93,53 +93,31 @@ class BtypeTable(object):
                 self.cell_2.get_evidences(b)
             )
         )
-        self.unknown_atoms: List[Atom] = self._get_unknown_atoms()
-        self.table: pd.DataFrame = self.build_table()
-        # logger.debug('Btype table:\n%s', self.table.to_markdown())
+        self.model_table = self.wmc.conditional_on(self.evidences)
 
-    def build_table(self) -> None:
-        table = []
-        for code in product(*([[True, False]] * len(self.unknown_atoms))):
-            evidences = set(self.evidences)
-            for idx, flag in enumerate(code):
-                lit = Lit(self.unknown_atoms[idx])
-                if not flag:
-                    lit = lit.negate()
-                evidences.add(lit)
-            if not self.wmc.satisfiable(frozenset(evidences)):
-                continue
-            weight = self.wmc.wmc(frozenset(evidences))
-            table.append(list(code) + [weight])
-        table = pd.DataFrame(table, columns=self.unknown_atoms + ['weight'])
+    def conditional_on(self, evidences: FrozenSet[Lit] = None) -> pd.DataFrame:
+        if evidences is None:
+            return self.model_table
+        table = self.model_table
+        for e in evidences:
+            if e.atom in table.columns:
+                if e.positive:
+                    table = table[table[e.atom]]
+                else:
+                    table = table[~table[e.atom]]
+                if table.empty:
+                    return table
         return table
 
-    def _condition(self, evidences: FrozenSet[Lit] = None) -> pd.DataFrame:
-        if evidences is None or len(evidences) == 0:
-            return self.table
-
-        df = self.table
-        for lit in evidences:
-            if lit.positive:
-                df = df[df[lit.atom]]
-            else:
-                df = df[~df[lit.atom]]
-        return df
-
-    @functools.lru_cache(maxsize=None)
     def get_weight(self, evidences: FrozenSet[Lit] = None) -> Poly:
-        df = self._condition(evidences)
-        if len(df) == 0:
-            logger.warning(
-                'Cell pair (%s, %s) with evidences %s is not satisfiable',
-                self.cell_1, self.cell_2, evidences
-            )
-            return mpq(0)
+        if not self.satisfiable(evidences):
+            return Rational(0, 1)
+        table = self.conditional_on(evidences)
         return functools.reduce(
             lambda a, b: a + b,
-            df.weight
+            table.weight
         )
 
-    @functools.lru_cache(maxsize=None)
     def get_btypes(self, evidences: FrozenSet[Lit] = None) -> Tuple[FrozenSet[Lit], Poly]:
         btypes = []
         df = self._condition(evidences)
@@ -162,15 +140,8 @@ class BtypeTable(object):
             btypes.append((frozenset(btype), weight))
         return btypes
 
-    @functools.lru_cache(maxsize=None)
     def satisfiable(self, evidences: FrozenSet[Lit] = None) -> bool:
-        evidences = self.evidences.union(evidences)
-        return self.wmc.satisfiable(evidences)
-
-    def _get_unknown_atoms(self) -> FrozenSet[Atom]:
-        unknown_atoms = []
-        for atom in self.wmc.gnd_formula.atoms():
-            if Lit(atom) not in self.evidences and \
-                    Lit(atom, False) not in self.evidences:
-                unknown_atoms.append(atom)
-        return unknown_atoms
+        table = self.conditional_on(evidences)
+        if table.empty:
+            return False
+        return True

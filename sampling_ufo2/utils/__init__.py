@@ -2,6 +2,7 @@ import numpy as np
 
 from .multinomial import MultinomialCoefficients, multinomial
 from .tree_sum import TreeSumContext, tree_sum
+from .polynomial import Rational, expand, coeff_monomial, create_vars
 from .third_typing import RingElement
 
 
@@ -23,6 +24,10 @@ __all__ = [
     "multinomial",
     "TreeSumContext",
     'RingElement',
+    'Rational',
+    'expand',
+    'coeff_monomial',
+    'create_vars',
     "tree_sum",
     "format_np_complex",
     "AUXILIARY_PRED_NAME",
