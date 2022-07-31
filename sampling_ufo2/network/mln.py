@@ -83,6 +83,9 @@ class MLN(object):
     def is_hard(self, index) -> bool:
         return self.weight(index) == float('inf')
 
+    def contain_existential_quantifier(self) -> bool:
+        return any(formula.is_exist() for formula in self.formulas)
+
     def __str__(self):
         s = ''
         s += 'domain = {}\n'.format(','.join(

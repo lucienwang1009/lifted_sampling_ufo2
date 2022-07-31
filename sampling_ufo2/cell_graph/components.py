@@ -10,7 +10,6 @@ from sympy import Poly
 
 from sampling_ufo2.fol.syntax import Lit, Pred, Term, a, b, x
 from sampling_ufo2.fol.utils import get_predicates
-from sampling_ufo2.wfomc.wmc import WMC
 from sampling_ufo2.utils import Rational
 
 
@@ -79,12 +78,12 @@ class Cell(object):
 
 
 class BtypeTable(object):
-    def __init__(self, wmc: WMC, cell_1: Cell, cell_2: Cell):
+    def __init__(self, model_table: pd.DataFrame, cell_1: Cell, cell_2: Cell):
         """
         The table containing the weight of all B-types.
         Note the order of cell_1 and cell_2 matters!
         """
-        self.wmc: WMC = wmc
+        self.model_table = model_table
         self.cell_1: Cell = cell_1
         self.cell_2: Cell = cell_2
 
@@ -93,9 +92,9 @@ class BtypeTable(object):
                 self.cell_2.get_evidences(b)
             )
         )
-        self.model_table = self.wmc.conditional_on(self.evidences)
+        self.model_table = self._conditional_on(self.evidences)
 
-    def conditional_on(self, evidences: FrozenSet[Lit] = None) -> pd.DataFrame:
+    def _conditional_on(self, evidences: FrozenSet[Lit] = None) -> pd.DataFrame:
         if evidences is None:
             return self.model_table
         table = self.model_table
@@ -112,7 +111,7 @@ class BtypeTable(object):
     def get_weight(self, evidences: FrozenSet[Lit] = None) -> Poly:
         if not self.satisfiable(evidences):
             return Rational(0, 1)
-        table = self.conditional_on(evidences)
+        table = self._conditional_on(evidences)
         return functools.reduce(
             lambda a, b: a + b,
             table.weight
@@ -120,7 +119,7 @@ class BtypeTable(object):
 
     def get_btypes(self, evidences: FrozenSet[Lit] = None) -> Tuple[FrozenSet[Lit], Poly]:
         btypes = []
-        df = self._condition(evidences)
+        df = self._conditional_on(evidences)
         if len(df) == 0:
             logger.warning(
                 'Cell pair (%s, %s) with evidences %s is not satisfiable',
@@ -141,7 +140,7 @@ class BtypeTable(object):
         return btypes
 
     def satisfiable(self, evidences: FrozenSet[Lit] = None) -> bool:
-        table = self.conditional_on(evidences)
+        table = self._conditional_on(evidences)
         if table.empty:
             return False
         return True

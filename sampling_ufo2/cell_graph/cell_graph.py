@@ -7,10 +7,9 @@ from typing import Callable, Dict, FrozenSet, List, Tuple
 from logzero import logger
 from sympy import Poly
 
-from sampling_ufo2.wfomc.wmc import WMC
 from sampling_ufo2.fol.syntax import AndCNF, CNF, Lit, Pred, a, b, c
 from sampling_ufo2.fol.utils import ground_FO2
-from sampling_ufo2.utils import Rational
+from sampling_ufo2.utils import Rational, RingElement
 from .components import Cell, BtypeTable
 
 
@@ -40,10 +39,6 @@ class CellGraph(object):
         self.gnd_formula_cc: CNF = ground_FO2(self.sentence, c)
         logger.debug('ground a b: %s', self.gnd_formula_ab)
 
-        self.cc_wmc = WMC(self.gnd_formula_cc, self.get_weight)
-        self.ab_wmc = WMC(
-            self.gnd_formula_ab, self.get_weight
-        )
         # build cells
         self.cells: List[Cell] = self._build_cells()
         # filter cells
@@ -91,7 +86,7 @@ class CellGraph(object):
     def __repr__(self):
         return str(self)
 
-    def get_cells(self, cell_filter: Callable[[Cell], bool] = None):
+    def get_cells(self, cell_filter: Callable[[Cell], bool] = None) -> List[Cell]:
         if cell_filter is None:
             return self.cells
         return list(filter(cell_filter, self.cells))
@@ -116,6 +111,22 @@ class CellGraph(object):
                         evidences: FrozenSet[Lit] = None) -> Poly:
         self._check_existence(cells)
         return self.edge_tables.get(cells).get_weight(evidences)
+
+    def get_all_weights(self) -> Tuple[List[RingElement], List[RingElement]]:
+        cell_weights = []
+        edge_weights = []
+        for i, cell_i in enumerate(self.cells):
+            cell_weights.append(self.get_cell_weight(cell_i))
+            edge_weight = []
+            for j, cell_j in enumerate(self.cells):
+                if i > j:
+                    edge_weight.append(Rational(1, 1))
+                else:
+                    edge_weight.append(self.get_edge_weight(
+                        (cell_i, cell_j)
+                    ))
+            edge_weights.append(edge_weight)
+        return cell_weights, edge_weights
 
     @functools.lru_cache(maxsize=None, typed=True)
     def satisfiable(self, cells: Tuple[Cell, Cell],
@@ -151,10 +162,28 @@ class CellGraph(object):
         return weights
 
     def _build_edge_tables(self):
+        # build a pd.DataFrame containing all model as well as the weight
+        atoms = list(self.gnd_formula_ab.atoms())
+        table = []
+        for model in self.gnd_formula_ab.models():
+            weight = Rational(1, 1)
+            values = {}
+            for lit in model:
+                values[lit.atom] = lit.positive
+                # ignore the weight appearing in cell weight
+                if (not (len(lit.atom.args) == 1 or all(arg == lit.atom.args[0]
+                                                        for arg in lit.atom.args))):
+                    weight *= (self.get_weight(lit.pred())[0] if lit.positive else
+                               self.get_weight(lit.pred())[1])
+            table.append([values[atom] for atom in atoms] + [weight])
+        model_table = pd.DataFrame(
+            table, columns=atoms + ['weight']
+        )
+        # build edge tables
         tables = dict()
         for i, cell in enumerate(self.cells):
             for j, other_cell in enumerate(self.cells):
                 tables[(cell, other_cell)] = BtypeTable(
-                    self.ab_wmc, cell, other_cell
+                    model_table, cell, other_cell
                 )
         return tables

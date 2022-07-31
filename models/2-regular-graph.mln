@@ -4,7 +4,7 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-vertex = 5
+vertex = 6
 E(vertex, vertex)
 F1(vertex, vertex)
 F2(vertex, vertex)
@@ -17,4 +17,4 @@ F2(vertex, vertex)
 !F1(x,y) v !F2(x,y).
 Exist y F1(x,y).
 Exist y F2(x,y).
-|E| = 10
+|E| = 12

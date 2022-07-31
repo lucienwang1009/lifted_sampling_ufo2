@@ -4,13 +4,13 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-person = {1,...,20}
+person = {1,...,5}
 //, Wannes, Jesse, Luc, 1, 2, 3, 4, 5, 6}
 friends(person,person)
 smokes(person)
 // Root(person)
 
-0 smokes(x)
+0.6 smokes(x)
 1 !friends(x,y) v !smokes(x) v smokes(y)
 // !friends(x,x).
 // (!friends(x,y) v friends(y,x)) ^ (!friends(y,x) v friends(x,y)).
