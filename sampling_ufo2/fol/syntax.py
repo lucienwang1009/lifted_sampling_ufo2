@@ -232,7 +232,7 @@ class DisjunctiveClause(Clause):
 
 
 @dataclass(frozen=True)
-class CNF():
+class CNF(Formula):
     clauses: FrozenSet[DisjunctiveClause]
 
     def __post_init__(self):
@@ -319,7 +319,7 @@ class CNF():
     def __repr__(self):
         return str(self)
 
-    def _encode_Dimacs(self):
+    def encode_Dimacs(self, get_weight=None):
         decode = dict(enumerate(self.atoms(), start=1))
         encode = {v: k for k, v in decode.items()}
 
@@ -328,10 +328,16 @@ class CNF():
              for lit in clause.literals]
             for clause in self.clauses
         ]
+        if get_weight is not None:
+            for atom, id in encode.items():
+                p_w, n_w = get_weight(atom.pred)
+                clauses.append(
+                    ['w', id, float(p_w / (p_w + n_w))]
+                )
         return clauses, decode
 
     def _solver_for(self):
-        clauses, decode = self._encode_Dimacs()
+        clauses, decode = self.encode_Dimacs()
         solver = Solver(bootstrap_with=clauses)
         return solver, decode
 
@@ -442,6 +448,13 @@ def AndCNF(*cnfs: List[CNF]) -> CNF:
     symbols = [cnf.symbol for cnf in cnfs]
     and_symbols = backend.And(*symbols)
     cnf = backend.to_cnf(and_symbols)
+    return cnf
+
+
+def OrCNF(*cnfs: List[CNF]) -> CNF:
+    symbols = [cnf.symbol for cnf in cnfs]
+    or_symbols = backend.Or(*symbols)
+    cnf = backend.to_cnf(or_symbols)
     return cnf
 
 

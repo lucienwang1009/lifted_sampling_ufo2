@@ -6,6 +6,7 @@ import logzero
 import logging
 import pickle
 
+from tqdm import tqdm
 from logzero import logger
 from contexttimer import Timer
 from typing import List, Set, FrozenSet, Tuple, Dict
@@ -127,7 +128,7 @@ class Sampler(object):
         ext_config = ExistentialContext(
             cell_assignment, self.context.tseitin_to_extpred)
 
-        # Get the total weight of the current  configuration
+        # Get the total weight of the current configuration
         cell_config = tuple(cell_assignment.count(cell) for cell in self.cells)
         total_weight = self.weights[self.configs.index(
             cell_config)] / MultinomialCoefficients.coef(cell_config)
@@ -190,8 +191,10 @@ class Sampler(object):
                 w = self._get_weight_poly(
                     q * total_weight_ebtype * utype_weight * coeff *
                     reduced_weight)
-                # print(w, total_weight)
+                # logger.debug(eb_config)
+                # logger.debug('%s %s', w, total_weight)
                 if random.random() < w / total_weight:
+                    logger.debug('selected eb config:\n%s', eb_config)
                     ebtype_indices = ext_config.sample_and_update(eb_config)
                     logger.debug('sampled evidences in this step:')
                     for ebtype, indices in ebtype_indices.items():
@@ -506,7 +509,7 @@ class Sampler(object):
         self.t_sampling = 0
         self.t_sampling_models = 0
         # NOTE: can do it parallelly!
-        for idx in sampled_idx:
+        for idx in tqdm(sampled_idx):
             samples.append(self.sample_on_config(
                 self.configs[idx]
             ))

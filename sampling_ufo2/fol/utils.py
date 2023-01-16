@@ -4,7 +4,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import FrozenSet, List
 
-from .syntax import CNF, Const, DisjunctiveClause, Lit, Pred, Substitution, Var
+from .syntax import CNF, Const, DisjunctiveClause, Lit, Pred, \
+    Substitution, Var, QuantifiedFormula, OrCNF, AndCNF
 from .syntax import x, y, z
 
 
@@ -37,7 +38,7 @@ def pad_vars(vars: FrozenSet[Var], arity: int) -> FrozenSet[Var]:
     return frozenset(list(ret_vars)[:arity])
 
 
-def ground_FO2(sentence: CNF, c1: Const, c2: Const = None) -> CNF:
+def ground_on_tuple(sentence: CNF, c1: Const, c2: Const = None) -> CNF:
     variables = sentence.vars()
     if len(variables) > 2 or len(variables) < 1:
         raise RuntimeError(
@@ -56,6 +57,8 @@ def ground_FO2(sentence: CNF, c1: Const, c2: Const = None) -> CNF:
 
 
 def exact_one_of(preds: List[Pred]) -> CNF:
+    if len(preds) == 1:
+        return None
     lits = [Lit(p(x)) for p in preds]
     # p1(x) v p2(x) v ... v pm(x)
     clauses = [DisjunctiveClause(frozenset(lits))]

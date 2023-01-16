@@ -4,7 +4,7 @@
 // P(friends(Nima,Nima)) = 0.49999999999999906
 //
 
-vertex = 10
+vertex = 5
 E(vertex, vertex)
 a(vertex)
 b(vertex)

@@ -8,7 +8,7 @@ from logzero import logger
 from sympy import Poly
 
 from sampling_ufo2.fol.syntax import AndCNF, CNF, Lit, Pred, a, b, c
-from sampling_ufo2.fol.utils import ground_FO2
+from sampling_ufo2.fol.utils import ground_on_tuple
 from sampling_ufo2.utils import Rational, RingElement
 from .components import Cell, BtypeTable
 
@@ -32,11 +32,11 @@ class CellGraph(object):
         self.preds: Tuple[Pred] = tuple(self.sentence.preds())
         logger.debug('prednames: %s', self.preds)
 
-        gnd_formula_ab1 = ground_FO2(self.sentence, a, b)
-        gnd_formula_ab2 = ground_FO2(self.sentence, b, a)
+        gnd_formula_ab1 = ground_on_tuple(self.sentence, a, b)
+        gnd_formula_ab2 = ground_on_tuple(self.sentence, b, a)
         self.gnd_formula_ab: CNF = AndCNF(
             gnd_formula_ab1, gnd_formula_ab2)
-        self.gnd_formula_cc: CNF = ground_FO2(self.sentence, c)
+        self.gnd_formula_cc: CNF = ground_on_tuple(self.sentence, c)
         logger.debug('ground a b: %s', self.gnd_formula_ab)
 
         # build cells

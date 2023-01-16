@@ -1,29 +1,29 @@
 //
-// P(friends(Guy,Nima))  = 0.4580488556024473
-// P(smokes(Guy))        = 0.49999999999999906
-// P(friends(Nima,Nima)) = 0.49999999999999906
+// P(fr(Guy,Nima))  = 0.4580488556024473
+// P(sm(Guy))        = 0.49999999999999906
+// P(fr(Nima,Nima)) = 0.49999999999999906
 //
 
 person = {1,...,6}
 //, Wannes, Jesse, Luc, 1, 2, 3, 4, 5, 6}
-friends(person,person)
-smokes(person)
+fr(person,person)
+sm(person)
 // p(person)
 // Root(person)
 
-!friends(x,x).
-1 smokes(x)
-2 !friends(x,y) v !smokes(x) v smokes(y)
-!friends(x,y) v friends(y,x).
-Exist y !friends(x,y).
-// Exist y (friends(x,y) v smokes(y)).
-// Exist y friends(x,y).
-// |friends| = 10
-// |smokes| = 1
+!fr(x,x).
+0 sm(x)
+0.2 !fr(x,y) v !sm(x) v sm(y)
+!fr(x,y) v fr(y,x).
+Exist y fr(x,y).
+// Exist y (fr(x,y) v sm(y)).
+// Exist y fr(x,y).
+// |fr| = 10
+// |sm| = 1
 
 // 1 p(x)
-// smokes(x) v p(x).
-// friends(x,y) v p(x).
-// !smokes(y) v p(x).
-// Exist y p(x) v !smokes(x) v !friends(x,y) v smokes(y).
-// (!friends(x,y) v friends(y,x)) ^ (!friends(y,x) v friends(x,y)).
+// sm(x) v p(x).
+// fr(x,y) v p(x).
+// !sm(y) v p(x).
+// Exist y p(x) v !sm(x) v !fr(x,y) v sm(y).
+// (!fr(x,y) v fr(y,x)) ^ (!fr(y,x) v fr(x,y)).

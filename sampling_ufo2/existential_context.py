@@ -1,3 +1,4 @@
+import random
 from logzero import logger
 from typing import Dict, FrozenSet, List, Set, Tuple
 from collections import defaultdict
@@ -104,21 +105,32 @@ class ExistentialContext(object):
                                                 Tuple[int, ...]]) \
             -> Dict[EBType, List[int]]:
         ebtype_elements: Dict[EBType, List[int]] = defaultdict(list)
+        updated_elements = dict()
+        # sample
         for eutype, config in eb_config.items():
             idx = 0
-            # NOTE: do we need to shuffle it again?
             elements = list(self.eu_elements[eutype])
+            # NOTE: we need to shuffle it again!
+            random.shuffle(elements)
+            updated_elements[eutype] = defaultdict(list)
             for ebtype, num in config.items():
+                ebtype_elements[ebtype] += elements[idx:(idx + num)]
                 reduced_eetype = self.reduce_eetype(
                     eutype[1], ebtype, ab_or_ba=1)
                 sampled_elements = elements[idx:(idx + num)]
-                ebtype_elements[ebtype] += elements[idx:(idx + num)]
-                self.eu_elements[eutype].difference_update(sampled_elements)
-                self.eu_elements[(eutype[0], reduced_eetype)
-                                 ].update(sampled_elements)
+                updated_elements[eutype][reduced_eetype].extend(sampled_elements)
+                idx += num
+
+        # update
+        for eutype, config in updated_elements.items():
+            for reduced_eetype, elements in config.items():
+                self.eu_elements[eutype].difference_update(elements)
+                self.eu_elements[
+                    (eutype[0], reduced_eetype)
+                ].update(elements)
+                num = len(elements)
                 self.eu_config[eutype] -= num
                 self.eu_config[(eutype[0], reduced_eetype)] += num
-                idx += num
         logger.debug('update eu_config: %s', self.eu_elements)
         return ebtype_elements
 

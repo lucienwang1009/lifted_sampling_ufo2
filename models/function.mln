@@ -1,7 +1,7 @@
-domain = 4
+domain = 3
 
 func(domain, domain)
 
 !func(x,x).
 Exist y func(x,y).
-|func| = 4
+|func| = 3

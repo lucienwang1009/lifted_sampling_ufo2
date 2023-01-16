@@ -4,6 +4,7 @@ perm(domain, domain)
 F1(domain, domain)
 F2(domain, domain)
 
+!perm(x,x).
 !perm(x,y) v F1(x,y).
 !F1(x,y) v perm(x,y).
 !perm(y,x) v F2(x,y).

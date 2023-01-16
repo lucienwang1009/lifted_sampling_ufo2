@@ -1,0 +1,12 @@
+person = 10
+
+workfor(person, person)
+boss(person)
+p(person)
+
+// 1.3 Exist y boss(x) v workfor(x,y)
+1.3 p(x)
+Exist y !p(x) v boss(x) v workfor(x,y).
+p(x) v !boss(x).
+p(x) v !workfor(x,y).
+// !workfor(x,x).
