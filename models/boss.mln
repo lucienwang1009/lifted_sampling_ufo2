@@ -1,4 +1,4 @@
-person = 10
+person = 5
 
 workfor(person, person)
 boss(person)

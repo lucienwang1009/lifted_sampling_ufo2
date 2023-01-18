@@ -9,7 +9,7 @@ from fractions import Fraction
 from sampling_ufo2.network.mln import MLN
 from sampling_ufo2.network.constraint import TreeConstraint, CardinalityConstraint
 from sampling_ufo2.fol.syntax import AndCNF, CNF, Const, Lit, Pred, Atom, \
-    DisjunctiveClause, a, b, x
+    DisjunctiveClause, a, b, x, y
 from sampling_ufo2.fol.utils import new_predicate, exact_one_of
 from sampling_ufo2.utils import AUXILIARY_PRED_NAME, TSEITIN_PRED_NAME, \
     SKOLEM_PRED_NAME, EVIDOM_PRED_NAME, Rational
@@ -206,20 +206,38 @@ class DRWFOMCContext(WFOMCContext):
 
     def _encode_eetypes(self):
         # deal with existential quantifiers
-        tseitin_clauses = [
-            DisjunctiveClause(frozenset([Lit(p(x))])) for p in self.tseitin_preds
-        ]
+        ext_atoms = []
+        for tp, extp in self.tseitin_to_extpred.items():
+            uni_var_idx = self.uni_var_indices[
+                self.ext_preds.index(extp)
+            ]
+            if uni_var_idx == 0:
+                ext_atom = extp(x, y)
+            else:
+                ext_atom = extp(y, x)
+            ext_atoms.append(ext_atom)
         evidence_sentence = []
-        for flag in product(*([[True, False]] * len(tseitin_clauses))):
+        for flag in product(*([[True, False]] * len(ext_atoms))):
             domain_pred = new_predicate(1, EVIDOM_PRED_NAME)
             if any(flag):
-                evidences = [clause for idx, clause in enumerate(
-                    tseitin_clauses) if flag[idx]]
-                # evidom(x) => evi1(x) ^ evi2(x) ^ ... ^ evim(x)
+                skolem_pred = new_predicate(1, SKOLEM_PRED_NAME)
+                self.weights[skolem_pred] = (Rational(1, 1), Rational(-1, 1))
+                skolem_lit = Lit(skolem_pred(x))
+                evidences = [Lit(atom, False) for idx, atom in enumerate(
+                    ext_atoms) if flag[idx]]
+                # S(x) v evidom(x)
+                # S(x) v !R1(x,y) v !R2(x,y) v ... v !Rm(x,y)
                 evidence_sentence.append(
-                    CNF.from_lit(Lit(domain_pred(x), False)).Or(
-                        CNF(frozenset(evidences))
+                    CNF.from_formula(Lit(domain_pred(x))).Or(
+                        CNF.from_formula(skolem_lit)
                     )
+                )
+                evidence_sentence.append(
+                    CNF.from_formula(skolem_lit).Or(CNF.from_formula(
+                        DisjunctiveClause(frozenset(
+                            evidences
+                        ))
+                    ))
                 )
                 evidence_preds = frozenset(
                     pred for idx, pred in enumerate(self.tseitin_preds) if flag[idx]
@@ -276,15 +294,6 @@ class DRWFOMCContext(WFOMCContext):
                 # \forall x\forall y: \neg R(x,y) v T(x)
                 # \forall x\exist y: \neg T(x) v R(x,y)
                 tseitin_pred = new_predicate(len(uni_vars), TSEITIN_PRED_NAME)
-                tseitin_atom = tseitin_pred(*uni_vars)
-                aux_lit = Lit(aux_atom)
-                tseitin_lit = Lit(tseitin_atom)
-                tseitin_equation = CNF.from_clause(
-                    DisjunctiveClause(frozenset(
-                        [aux_lit.negate(), tseitin_lit]
-                    ))
-                )
-                partial_skolem_sentence.append(tseitin_equation)
                 self.tseitin_preds.append(tseitin_pred)
                 self.tseitin_to_extpred[tseitin_pred] = aux_pred
 
@@ -293,18 +302,6 @@ class DRWFOMCContext(WFOMCContext):
                 skolem_pred = new_predicate(len(uni_vars), SKOLEM_PRED_NAME)
                 skolem_atom = skolem_pred(*uni_vars)
                 skolem_lit = Lit(skolem_atom)
-                partial_skolem_sentence.append(
-                    CNF(
-                        frozenset([
-                            DisjunctiveClause(
-                                frozenset([skolem_lit, tseitin_lit])
-                            ),
-                            DisjunctiveClause(
-                                frozenset([skolem_lit, aux_lit.negate()])
-                            )
-                        ])
-                    )
-                )
                 # skolemization: S(x) v !f(x,y)
                 sentence.append(
                     CNF(
@@ -315,7 +312,6 @@ class DRWFOMCContext(WFOMCContext):
                         ])
                     )
                 )
-                self.weights[skolem_pred] = (Rational(1, 1), Rational(-1, 1))
                 self.weights[skolem_pred] = (Rational(1, 1), Rational(-1, 1))
                 # self._skolem_preds.append(skolem_pred)
                 # self._skolem_to_tseitin[skolem_pred] = tseitin_pred

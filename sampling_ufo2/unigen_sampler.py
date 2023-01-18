@@ -341,7 +341,7 @@ def unigen_sampling(mln, ccs, k):
         ext_indices = []
         all_hard = True
         for idx, formula in enumerate(mln.formulas):
-            if mln.is_hard(idx):
+            if not mln.is_hard(idx):
                 all_hard = False
             if formula.is_exist():
                 ext_formulas.append(formula)
@@ -351,16 +351,20 @@ def unigen_sampling(mln, ccs, k):
             idx = mln.formulas.index(formula)
             del mln.formulas[idx]
             del mln.weights[idx]
-        context = WFOMCContext(mln, None, None)
-        formulas.append(ground_on_domain(
-            QuantifiedFormula(context.sentence), mln.domain
-        ))
+        if len(mln.formulas) > 0:
+            context = WFOMCContext(mln, None, None)
+            formulas.append(ground_on_domain(
+                QuantifiedFormula(context.sentence), mln.domain
+            ))
         for formula in ext_formulas:
             formulas.append(ground_on_domain(
                 formula, mln.domain
             ))
         grounding_cnf = AndCNF(*formulas)
-        clauses, decode = grounding_cnf.encode_Dimacs(context.get_weight)
+        if not all_hard:
+            clauses, decode = grounding_cnf.encode_Dimacs(context.get_weight)
+        else:
+            clauses, decode = grounding_cnf.encode_Dimacs()
         top_id = len(decode)
         if ccs is not None:
             logger.info('Before CC, the number of lits: {}'.format(top_id))
